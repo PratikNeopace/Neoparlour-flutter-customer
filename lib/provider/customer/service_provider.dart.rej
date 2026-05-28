@@ -1,0 +1,38 @@
+@@ -33,6 +33,11 @@
+     notifyListeners();
+   }
+ 
++  void clearData() {
++    _services = [];
++    clearSelections();
++  }
++
+   void preselectServices(List<int> ids) {
+     _selectedServiceIds.clear();
+--- lib/provider/customer/staff_provider.dart
++++ lib/provider/customer/staff_provider.dart
+@@ -86,6 +86,11 @@
+     }
+   }
+ 
++  void clearData() {
++    _staffList = [];
++    resetStaffState();
++  }
++
+   void resetStaffState() {
+     _availableStaffList = [];
+--- lib/provider/customer/offer_provider.dart
++++ lib/provider/customer/offer_provider.dart
+@@ -10,6 +10,11 @@
+   bool get isLoading => _isLoading;
+   String? get error => _error;
+ 
++  void clearData() {
++    _activeOffers = [];
++    notifyListeners();
++  }
++
+   Future<void> fetchActiveOffers() async {
+     _isLoading = true;
+     _error = null;

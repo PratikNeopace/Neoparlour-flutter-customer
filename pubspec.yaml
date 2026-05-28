@@ -1,0 +1,74 @@
+name: neo_parlour
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.0.10
+  google_fonts: ^8.0.2
+  dio: ^5.4.1
+  provider: ^6.1.2
+  shared_preferences: ^2.2.2
+  intl: ^0.19.0
+  image_picker: ^1.1.2
+  mobile_scanner: ^7.2.0
+  file_picker: ^11.0.2
+  firebase_core: ^4.7.0
+  firebase_messaging: ^16.2.0
+  flutter_local_notifications: ^17.2.2
+  http: ^1.6.0
+  another_flushbar: ^2.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/Images/SplashScreen/
+    - assets/Images/RegisterScreen/
+    - assets/Images/LoginScreen/
+    - assets/Images/SalonIDScreen/
+    - assets/Images/HomeScreen/
+    - assets/Images/ProductDetailsScreen/
+    - assets/Images/BottomNavigationBar/
+    - assets/Images/OTPScreen/
+    - assets/Images/ServicesScreen/
+    - assets/Images/ServicesScreen/
+    - assets/Images/NotificationScreen/
+    - assets/Images/ChangePassword/
+    - assets/Images/EditProfileScreen/
+    - assets/Images/DrawerScreen/
+    - assets/Images/TopExpertsScreen/
+    - assets/Images/HomeScreen/header_bg.jpeg
+    - assets/Images/FeedbackScreen/
+    - assets/Images/SelectProfessionalScreen/
+    - assets/Images/SelectDateTime/
+    - assets/Images/ReviewTimeScreen/
+    - assets/Images/SelectDateTime/select_date_time_bg_img.jpeg
+    - assets/Images/SelectDateTime/date_floating_btn.svg
+    - assets/Images/MyBookingScreen/
+    - assets/Images/Preloaded/Staff/
+    - assets/Images/StaffIcon/
+    - assets/Images/HistoryPopUpScreen/
+    - assets/Images/ForgotPasswordScreen/
+    - assets/Images/AddToCartScreen/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/NeoParlour-icon-launcher.png"
+  min_sdk_android: 21
+
+
+ 

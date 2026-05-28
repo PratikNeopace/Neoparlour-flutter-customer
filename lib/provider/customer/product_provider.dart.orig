@@ -1,0 +1,68 @@
+import 'package:flutter/material.dart';
+import '../../core/data/services/product_service.dart';
+import '../../core/domain/models/product.dart';
+
+class ProductProvider with ChangeNotifier {
+  final ProductService _productService = ProductService();
+
+  List<Product> _products = [];
+  Map<String, List<Product>> _groupedProducts = {};
+  bool _isLoading = false;
+  String? _error;
+
+  List<Product> get products => _products;
+  Map<String, List<Product>> get groupedProducts => _groupedProducts;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  Product? _selectedProduct;
+  Product? get selectedProduct => _selectedProduct;
+
+  Future<void> fetchProductById(int id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _selectedProduct = await _productService.getProductById(id);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchProducts() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _products = await _productService.getProducts();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchGroupedProducts() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _groupedProducts = await _productService.getGroupedProducts();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}
