@@ -2,9 +2,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../core/utils/flushbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:neo_parlour/core/utils/validator.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../provider/customer/auth_provider.dart';
 import 'login_screen.dart';
 import 'otp_screen.dart';
@@ -18,6 +18,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   bool isChecked = false;
+  bool isTncAccepted = false;
   bool isRegisterTab = true;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -41,6 +42,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     passwordController.dispose();
     confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> openTermsAndConditions() async {
+    final Uri url = Uri.parse(
+      'https://www.neoparlour.com/customer/terms-and-conditions',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    }
+  }
+
+  Future<void> openPrivacyPolicy() async {
+    final Uri url = Uri.parse(
+      'https://www.neoparlour.com/customer/privacy-policy',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+    }
   }
 
   @override
@@ -90,7 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0XFFFF7A58).withOpacity(0.25),
+                    color: const Color(0XFFFF7A58).withValues(alpha: 0.25),
                     blurRadius: 25,
                     spreadRadius: 10,
                     offset: const Offset(0, 4),
@@ -237,16 +264,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 10),
 
+                    // TERMS & CONDITIONS CHECKBOX ABOVE BUTTON
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: Checkbox(
+                            value: isTncAccepted,
+                            activeColor: const Color(0XFFFF0B01),
+                            onChanged: (value) =>
+                                setState(() => isTncAccepted = value!),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                color: Color(0XFF8D8D8D),
+                                fontSize: 12,
+                              ),
+                              children: [
+                                const TextSpan(text: "I agree to "),
+                                TextSpan(
+                                  text: "Terms & Conditions",
+                                  style: const TextStyle(
+                                    color: Color(0XFFFF0B01),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = openTermsAndConditions,
+                                ),
+                                const TextSpan(text: " and "),
+                                TextSpan(
+                                  text: "Privacy Policy",
+                                  style: const TextStyle(
+                                    color: Color(0XFFFF0B01),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = openPrivacyPolicy,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 15),
+
                     // Submit button
                     SizedBox(
                       width: double.infinity,
                       height: 49,
                       child: ElevatedButton(
-                        onPressed: isChecked
+                        onPressed: isTncAccepted
                             ? () => _handleSubmit(context)
                             : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isChecked
+                          backgroundColor: isTncAccepted
                               ? const Color(0XFFFF0B01)
                               : Colors.grey.shade400,
                           shape: RoundedRectangleBorder(
@@ -277,32 +355,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // TERMS & CONDITIONS CHECKBOX
-                    Row(
-                      children: [
-                        SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: Checkbox(
-                            value: isChecked,
-                            activeColor: Color(0XFFFF0B01),
-                            onChanged: (value) =>
-                                setState(() => isChecked = value!),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          "I agree with terms of use",
-                          style: TextStyle(
-                            color: Color(0XFF8D8D8D),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
                     ),
 
                     const SizedBox(height: 12),
@@ -353,24 +405,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _handleVerify(BuildContext context) async {
-    final mobile = mobileController.text.trim();
-    if (mobile.isEmpty) {      FlushbarHelper.show(context, "Please enter mobile number");
 
-      return;
-    }
-
-    final auth = context.read<AuthProvider>();
-    final success = await auth.sendOtp(mobile);
-    if (success) {      FlushbarHelper.show(context, "OTP sent successfully to WhatsApp");
-
-    } else {      FlushbarHelper.show(context, auth.errorMessage ?? "Failed to send OTP");
-
-    }
-  }
 
   void _handleSubmit(BuildContext context) async {
-    if (!isChecked) {      FlushbarHelper.show(context, "Please agree to the terms and conditions");
+    if (!isTncAccepted) {      FlushbarHelper.show(context, "Please agree to the terms and conditions");
 
       return;
     }
@@ -380,7 +418,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final mobile = mobileController.text.trim();
     final address = addressController.text.trim();
     final password = passwordController.text.trim();
-    final confirmPassword = confirmPasswordController.text.trim();
 
     // Field-specific validation
     if (!_formKey.currentState!.validate()) {
@@ -403,9 +440,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String? fcmToken;
     try {
       fcmToken = await FirebaseMessaging.instance.getToken();
-      print("FCM Token for Registration: $fcmToken");
+      debugPrint("FCM Token for Registration: $fcmToken");
     } catch (e) {
-      print("Error fetching FCM token: $e");
+      debugPrint("Error fetching FCM token: $e");
     }
 
     auth.setRegistrationData({
@@ -416,6 +453,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       "mobile": mobile,
       "password": password,
       "fcmToken": fcmToken,
+      "tncAccepted": true,
+      "tncAcceptedAt": DateTime.now().toUtc().toIso8601String(),
+      "tncVersion": "v1.0",
     });
 
     if (context.mounted) {
@@ -523,35 +563,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // SOCIAL LOGIN ICON
-  Widget _socialSvgIcon(
-    String asset, {
-    required Color bgColor,
-    bool border = false,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10),
-        height: 38,
-        width: 38,
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-          ],
-          border: border ? Border.all(color: Colors.grey.shade200) : null,
-        ),
-        child: Center(
-          child: SvgPicture.asset(
-            asset,
-            height: 22,
-            color: bgColor == Colors.white ? null : Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
+
+
 }

@@ -127,9 +127,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withValues(alpha: 0.3),
                   Colors.transparent,
-                  const Color(0XFFFF3502).withOpacity(0.7),
+                  const Color(0XFFFF3502).withValues(alpha: 0.7),
                 ],
               ),
             ),
@@ -141,7 +141,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.4),
+              backgroundColor: Colors.white.withValues(alpha: 0.4),
               child: const Icon(Icons.chevron_left, color: Colors.black),
             ),
           ),
@@ -169,7 +169,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
+                  color: Colors.black.withValues(alpha: 0.25),
                   blurRadius: 10,
                   offset: const Offset(0, 6),
                 ),
@@ -194,7 +194,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -245,7 +245,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     Icon(
                       Icons.close,
                       size: 24,
-                      color: sideColor.withOpacity(0.8),
+                      color: sideColor.withValues(alpha: 0.8),
                     ),
                   ],
                 ),

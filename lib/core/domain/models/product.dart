@@ -5,7 +5,9 @@ class Product {
   final double price;
   final double discountPrice;
   final String category;
+  final String? imageUrl;
   final String? imageBase64;
+  final List<String> additionalImageUrls;
   final List<String> additionalImagesBase64;
   final int stock;
   final int restockLevel;
@@ -20,7 +22,9 @@ class Product {
     required this.price,
     required this.discountPrice,
     required this.category,
+    this.imageUrl,
     this.imageBase64,
+    required this.additionalImageUrls,
     required this.additionalImagesBase64,
     required this.stock,
     required this.restockLevel,
@@ -37,7 +41,9 @@ class Product {
       price: (json['price'] ?? 0).toDouble(),
       discountPrice: (json['discountPrice'] ?? 0).toDouble(),
       category: json['category'] ?? '',
+      imageUrl: json['imageUrl'] ?? json['imageBase64'],
       imageBase64: json['imageBase64'],
+      additionalImageUrls: List<String>.from(json['additionalImageUrls'] ?? json['additionalImagesBase64'] ?? []),
       additionalImagesBase64: List<String>.from(json['additionalImagesBase64'] ?? []),
       stock: json['stock'] ?? 0,
       restockLevel: json['restockLevel'] ?? 0,
@@ -55,7 +61,9 @@ class Product {
       'price': price,
       'discountPrice': discountPrice,
       'category': category,
+      'imageUrl': imageUrl,
       'imageBase64': imageBase64,
+      'additionalImageUrls': additionalImageUrls,
       'additionalImagesBase64': additionalImagesBase64,
       'stock': stock,
       'restockLevel': restockLevel,

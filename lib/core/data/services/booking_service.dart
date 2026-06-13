@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../../domain/models/available_slot.dart';
 
@@ -6,7 +7,7 @@ class BookingService {
 
   Future<List<AvailableSlot>> getAvailableSlots(int staffId, DateTime date, int durationMinutes) async {
     try {
-      final String dateStr = date.toIso8601String().split('T')[0] + 'T00:00:00Z';
+      final String dateStr = '${date.toIso8601String().split('T')[0]}T00:00:00Z';
       final response = await _apiClient.dio.get(
         'appointments/staff/$staffId/available-slots',
         queryParameters: {
@@ -22,14 +23,14 @@ class BookingService {
       }
       return [];
     } catch (e) {
-      print("Error fetching slots: $e");
+      debugPrint("Error fetching slots: $e");
       rethrow;
     }
   }
 
   Future<List<AvailableSlot>> getSalonSlots(DateTime date) async {
     try {
-      final String dateStr = date.toIso8601String().split('T')[0] + 'T00:00:00Z';
+      final String dateStr = '${date.toIso8601String().split('T')[0]}T00:00:00Z';
       final response = await _apiClient.dio.get(
         'appointments/salon-slots?selectedDate=$dateStr',
       );
@@ -41,7 +42,7 @@ class BookingService {
       }
       return [];
     } catch (e) {
-      print("Error fetching salon slots: $e");
+      debugPrint("Error fetching salon slots: $e");
       rethrow;
     }
   }
@@ -54,7 +55,7 @@ class BookingService {
       );
       return response.data;
     } catch (e) {
-      print("Error booking appointment: $e");
+      debugPrint("Error booking appointment: $e");
       rethrow;
     }
   }
@@ -76,7 +77,7 @@ class BookingService {
       );
       return response.data ?? {};
     } catch (e) {
-      print("Error fetching user appointments: $e");
+      debugPrint("Error fetching user appointments: $e");
       rethrow;
     }
   }
@@ -96,7 +97,7 @@ class BookingService {
       );
       return response.data;
     } catch (e) {
-      print('Reschedule Error: $e');
+      debugPrint('Reschedule Error: $e');
       rethrow;
     }
   }
@@ -109,7 +110,7 @@ class BookingService {
       );
       return response.data;
     } catch (e) {
-      print('Cancel Error: $e');
+      debugPrint('Cancel Error: $e');
       rethrow;
     }
   }
@@ -122,7 +123,7 @@ class BookingService {
       }
       return 0.0;
     } catch (e) {
-      print("Error fetching home service charges: $e");
+      debugPrint("Error fetching home service charges: $e");
       return 0.0;
     }
   }
@@ -132,7 +133,7 @@ class BookingService {
       final response = await _apiClient.dio.get('salons/weekly-off');
       return response.data?.toString().toUpperCase();
     } catch (e) {
-      print("Error fetching weekly off: $e");
+      debugPrint("Error fetching weekly off: $e");
       return null;
     }
   }

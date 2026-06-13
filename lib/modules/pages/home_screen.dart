@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
@@ -8,9 +7,7 @@ import 'package:neo_parlour/provider/customer/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../../provider/customer/service_provider.dart';
 import '../../core/domain/models/neo_service.dart';
-import '../../widgets/curved_text_painter.dart';
 import '../../widgets/custom_nav_bar.dart';
-import 'booking_page.dart';
 import 'select_services_screen.dart';
 import 'services_screen.dart';
 import 'select_date_time_screen.dart';
@@ -21,14 +18,13 @@ import '../../provider/customer/package_provider.dart';
 import '../../provider/customer/product_provider.dart';
 import '../../core/domain/models/offer.dart';
 import '../../core/domain/models/package_model.dart';
-import 'dart:convert';
 import 'package:intl/intl.dart';
-import '../../core/constants/app_assets.dart';
 import '../../widgets/staff_image_widgets.dart';
 import 'top_experts_screen.dart';
 import 'beauty_products_screen.dart';
-import 'Product_details_screen.dart';
+import 'product_details_screen.dart';
 import 'custom_search_delegate.dart';
+import '../../widgets/premium_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,13 +84,13 @@ class _HomeScreenState extends State<HomeScreen> {
       sound: true,
     );
 
-    print('Permission status: ${settings.authorizationStatus}');
+    debugPrint('Permission status: ${settings.authorizationStatus}');
   }
 
   //  Get FCM Token 
   void getFCMToken() async {
     String? token = await FirebaseMessaging.instance.getToken();
-    print("FCM Token: $token");
+    debugPrint("FCM Token: $token");
 
     if (token != null && mounted) {
       context.read<AuthProvider>().updateFcmTokenOnServer(token);
@@ -124,17 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }
-      print("Foreground notification: ${message.notification?.title}");
+      debugPrint("Foreground notification: ${message.notification?.title}");
     });
   }
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(" ");
-    if (parts.length == 1) {
-      return parts[0][0].toUpperCase();
-    }
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -544,6 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // Clear previous and set new selection
         serviceProvider.preselectServices([service.id]);
         bookingProvider.applyOffer(null);
+        bookingProvider.setSelectedPackage(null);
 
         Navigator.push(
           context,
@@ -626,6 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Clear previous service/slot state; staff-specific slots will be
                   // fetched in SelectDateTimeScreen's initState.
                   bookingProvider.applyOffer(null);
+                  bookingProvider.setSelectedPackage(null);
                   bookingProvider.setPreSelectedStaff(e.id, durationMinutes: 45);
 
                   Navigator.push(
@@ -664,7 +656,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               end: Alignment.bottomCenter,
                               colors: [
                                 Colors.transparent,
-                                const Color(0xCCFF3502).withOpacity(0.5),
+                                const Color(0xCCFF3502).withValues(alpha: 0.5),
                                 const Color(0xCCFF3502), 
                               ],
                               stops: const [0.4, 0.75, 1.0],
@@ -774,15 +766,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Positioned.fill(
                         bottom: 40 * scale,
-                        child: p.imageBase64 != null && p.imageBase64!.isNotEmpty
-                            ? Image.memory(
-                                base64Decode(p.imageBase64!),
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.image, color: Colors.grey),
-                              ),
+                        child: PremiumImageWidget(
+                          imageUrl: p.imageUrl ?? p.imageBase64,
+                          width: double.infinity,
+                          height: double.infinity,
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          fallbackWidget: Container(
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.image, color: Colors.grey),
+                          ),
+                        ),
                       ),
                       Positioned(
                         top: 10,
@@ -960,7 +953,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text(
                       "Valid on: ${offer.applicableServices.map((s) => s.name).join(", ")}",
                       style: GoogleFonts.poppins(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 9 * scale,
                         fontWeight: FontWeight.w600,
                       ),
@@ -987,6 +980,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         serviceProvider.preselectServices(serviceIds);
                         bookingProvider.applyOffer(offer);
+                        bookingProvider.setSelectedPackage(null);
                         bookingProvider.selectSlot(null);
 
                         Navigator.push(
@@ -1029,7 +1023,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           "Valid Till ${dateFormat.format(offer.validTo)}",
                           style: GoogleFonts.poppins(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 8 * scale,
                           ),
                         ),
@@ -1096,6 +1090,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final serviceIds = package.services.map((s) => s.id).toList();
         serviceProvider.preselectServices(serviceIds);
         bookingProvider.applyOffer(null);
+        bookingProvider.setSelectedPackage(package);
         bookingProvider.selectSlot(null);
 
         Navigator.push(context, MaterialPageRoute(builder: (context) => const SelectDateTimeScreen()));
@@ -1178,7 +1173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   width: 150 * scale,
                   child: Text(
-                    package.name + "\n" + package.services.map((s) => s.name).join("\n"),
+                    "${package.name}\n${package.services.map((s) => s.name).join("\n")}",
                     style: GoogleFonts.poppins(
                       fontSize: 10 * scale,
                       fontWeight: FontWeight.w500,

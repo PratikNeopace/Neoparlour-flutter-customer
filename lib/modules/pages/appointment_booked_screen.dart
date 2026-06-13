@@ -42,7 +42,7 @@ class AppointmentBookedScreen extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: CircleAvatar(
-                    backgroundColor: Colors.white.withOpacity(0.5),
+                    backgroundColor: Colors.white.withValues(alpha: 0.5),
                     child: const Icon(Icons.arrow_back_ios_new, size: 18, color: Colors.black),
                   ),
                 ),
@@ -58,7 +58,7 @@ class AppointmentBookedScreen extends StatelessWidget {
                 width: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0XFFFFB1AE).withOpacity(0.5),
+                  color: const Color(0XFFFFB1AE).withValues(alpha: 0.5),
                 ),
                 child: Center(
                   child: Container(
@@ -66,7 +66,7 @@ class AppointmentBookedScreen extends StatelessWidget {
                     width: 90,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0XFFFFB1AE).withOpacity(0.5),
+                      color: const Color(0XFFFFB1AE).withValues(alpha: 0.5),
                     ),
                     child: Center(
                       child: Container(
@@ -74,7 +74,7 @@ class AppointmentBookedScreen extends StatelessWidget {
                         width: 75,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0XFFFF756F).withOpacity(0.7),
+                          color: const Color(0XFFFF756F).withValues(alpha: 0.7),
                         ),
                         child: Center(
                           child: Container(

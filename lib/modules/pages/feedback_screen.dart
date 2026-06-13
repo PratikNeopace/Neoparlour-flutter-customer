@@ -87,9 +87,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.1),
+                    Colors.black.withValues(alpha: 0.1),
                     Colors.transparent,
-                    const Color(0XFFFF3502).withOpacity(0.6),
+                    const Color(0XFFFF3502).withValues(alpha: 0.6),
                   ],
                 ),
               ),
@@ -112,7 +112,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.4),
+              backgroundColor: Colors.white.withValues(alpha: 0.4),
               child: const Icon(Icons.chevron_left, color: Colors.black),
             ),
           ),
@@ -164,7 +164,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                 ),
               ],
@@ -284,17 +284,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             rating: ratings[selectedRating]["value"],
                           );
 
-                          if (success && mounted) {
+                          if (!context.mounted) return;
+
+                          if (success) {
                             await FlushbarHelper.show(
                               context,
                               "Feedback submitted successfully!",
                               isSuccess: true,
                             );
 
-                            if (mounted) {
-                              Future.microtask(() => Navigator.pop(context));
+                            if (context.mounted) {
+                              final navigator = Navigator.of(context);
+                              Future.microtask(() => navigator.pop());
                             }
-                          } else if (mounted) {
+                          } else {
                             await FlushbarHelper.show(
                               context,
                               feedbackProv.errorMessage ?? "Failed to submit feedback",

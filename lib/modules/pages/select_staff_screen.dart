@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +9,6 @@ import '../../widgets/custom_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'review_confirm_screen.dart';
 import 'home_screen.dart';
-import '../../core/constants/app_assets.dart';
 import '../../widgets/staff_image_widgets.dart';
 
 ///  ADDED — responsive font helper (fixes your error)
@@ -230,9 +227,9 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.3),
+                Colors.black.withValues(alpha: 0.3),
                 Colors.transparent,
-                const Color(0XFFFF3502).withOpacity(0.7),
+                const Color(0XFFFF3502).withValues(alpha: 0.7),
               ],
             ),
           ),
@@ -290,7 +287,7 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
                 width: 34 * scale,
                 height: 34 * scale,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.35),
+                  color: Colors.white.withValues(alpha: 0.35),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.chevron_left, color: Colors.black),
@@ -332,21 +329,6 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
           );
         }
 
-        if (staff.isEmpty) {
-          return Padding(
-            padding: EdgeInsets.symmetric(vertical: 50 * scale),
-            child: Center(
-              child: Text(
-                "No staff available for the selected time.",
-                style: GoogleFonts.poppins(
-                  fontSize: 14 * scale,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-          );
-        }
-
         return ListView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -360,6 +342,18 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
               scale,
               provider.hasUserSelected && provider.selectedStaff == null,
             ),
+            if (staff.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 20 * scale, horizontal: 24 * scale),
+                child: Text(
+                  "No specific staff available for this time slot.",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12 * scale,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             ...staff.map(
               (s) => _buildStaffItem(
                 context,

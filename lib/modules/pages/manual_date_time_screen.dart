@@ -320,9 +320,9 @@ class _ManualDateTimeScreenState extends State<ManualDateTimeScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.15),
+                    Colors.black.withValues(alpha: 0.15),
                     Colors.transparent,
-                    const Color(0xFFFF3502).withOpacity(0.35),
+                    const Color(0xFFFF3502).withValues(alpha: 0.35),
                   ],
                 ),
               ),
@@ -339,7 +339,7 @@ class _ManualDateTimeScreenState extends State<ManualDateTimeScreen> {
                   width: 34 * scale,
                   height: 34 * scale,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.35),
+                    color: Colors.white.withValues(alpha: 0.35),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.chevron_left, color: Colors.black),

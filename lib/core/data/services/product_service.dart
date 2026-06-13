@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../../domain/models/product.dart';
 
@@ -13,7 +14,7 @@ class ProductService {
       }
       return [];
     } catch (e) {
-      print("Error fetching products: $e");
+      debugPrint("Error fetching products: $e");
       rethrow;
     }
   }
@@ -85,7 +86,7 @@ class ProductService {
       }
       return GroupedProductsResponse(groupedProducts: result, isLast: isLast);
     } catch (e) {
-      print("Error fetching grouped products: $e");
+      debugPrint("Error fetching grouped products: $e");
       rethrow;
     }
   }
@@ -102,8 +103,8 @@ class ProductService {
         'products/filter',
         queryParameters: {
           'active': active,
-          if (category != null) 'category': category,
-          if (productType != null) 'productType': productType,
+          ?category: category,
+          ?productType: productType,
           'page': page,
           'size': size,
         },
@@ -114,7 +115,7 @@ class ProductService {
       }
       return [];
     } catch (e) {
-      print("Error fetching filtered products: $e");
+      debugPrint("Error fetching filtered products: $e");
       rethrow;
     }
   }
@@ -124,7 +125,7 @@ class ProductService {
       final response = await _apiClient.dio.get('products/$id');
       return Product.fromJson(response.data);
     } catch (e) {
-      print("Error fetching product details: $e");
+      debugPrint("Error fetching product details: $e");
       rethrow;
     }
   }

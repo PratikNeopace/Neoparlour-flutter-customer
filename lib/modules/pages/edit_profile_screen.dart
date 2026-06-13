@@ -24,15 +24,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => context.read<AuthProvider>().fetchUserProfile());
+    Future.microtask(() {
+      if (mounted) {
+        context.read<AuthProvider>().fetchUserProfile();
+      }
+    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    DateTime initialDate = DateTime.now();
+    final DateTime now = DateTime.now();
+    final DateTime maxDate = DateTime(now.year - 18, now.month, now.day);
+    DateTime initialDate = maxDate;
 
     if (_dobController.text.isNotEmpty) {
       try {
-        initialDate = DateTime.parse(_dobController.text);
+        final parsed = DateTime.parse(_dobController.text);
+        if (parsed.isBefore(maxDate) || parsed.isAtSameMomentAs(maxDate)) {
+          initialDate = parsed;
+        }
       } catch (_) {}
     }
 
@@ -40,15 +49,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      lastDate: maxDate,
     );
 
     if (picked != null) {
       setState(() {
         _dobController.text =
             "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-
-        setState(() {});
       });
     }
   }
@@ -152,9 +159,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             final profile = auth.userProfile;
             // ⭐ THIS IS THE FIX — keeps controllers synced after navigation
             if (profile != null && !_isEditing) {
-              _nameController.text = profile.name ?? "";
-              _emailController.text = profile.email ?? "";
-              _phoneController.text = profile.phone ?? "";
+              _nameController.text = profile.name;
+              _emailController.text = profile.email;
+              _phoneController.text = profile.phone;
 
               if (profile.birthdate != null && profile.birthdate!.isNotEmpty) {
                 _dobController.text = profile.birthdate!.split('T')[0];
@@ -198,8 +205,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: [
-                                      const Color(0XFF8B8B8B).withOpacity(0.4),
-                                      const Color(0XFFFF3502).withOpacity(0.85),
+                                      const Color(0XFF8B8B8B).withValues(alpha: 0.4),
+                                      const Color(0XFFFF3502).withValues(alpha: 0.85),
                                     ],
                                   ),
                                 ),
@@ -252,7 +259,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: CircleAvatar(
-                            backgroundColor: Colors.white.withOpacity(0.4),
+                            backgroundColor: Colors.white.withValues(alpha: 0.4),
                             child: const Icon(
                               Icons.chevron_left,
                               size: 30,
@@ -344,6 +351,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               "Date Of Birth",
                               controller: _dobController,
                               enabled: _isEditing,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return null; // optional, but if entered it must be valid
+                                }
+                                try {
+                                  final birthDate = DateTime.parse(value);
+                                  final now = DateTime.now();
+                                  final ageLimitDate = DateTime(now.year - 18, now.month, now.day);
+                                  if (birthDate.isAfter(ageLimitDate)) {
+                                    return "Minimum age must be 18 years";
+                                  }
+                                } catch (_) {
+                                  return "Enter a valid date";
+                                }
+                                return null;
+                              },
                             ),
                           ),
                         ),
@@ -385,8 +408,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           height: 54,
                           child: ElevatedButton(
                             onPressed: () async {
-                              if (!_isEditing)
+                              if (!_isEditing) {
                                 return; // prevents action but keeps button active
+                              }
                                 
                               if (!_formKey.currentState!.validate()) {
                                 return;

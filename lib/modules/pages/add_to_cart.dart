@@ -6,7 +6,7 @@ import 'package:neo_parlour/modules/pages/home_screen.dart';
 import 'package:neo_parlour/widgets/custom_nav_bar.dart';
 import '../../provider/customer/cart_provider.dart';
 import '../../core/domain/models/cart_item.dart';
-import 'dart:convert';
+import '../../widgets/premium_image.dart';
 
 class AddToCartScreen extends StatefulWidget {
   const AddToCartScreen({super.key});
@@ -88,9 +88,9 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: [
-                                      Colors.black.withOpacity(0.1),
+                                      Colors.black.withValues(alpha: 0.1),
                                       Colors.transparent,
-                                      const Color(0XFFFF3502).withOpacity(0.8),
+                                      const Color(0XFFFF3502).withValues(alpha: 0.8),
                                     ],
                                   ),
                                 ),
@@ -104,7 +104,7 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
                             child: GestureDetector(
                               onTap: () => Navigator.pop(context),
                               child: CircleAvatar(
-                                backgroundColor: Colors.white.withOpacity(0.8),
+                                backgroundColor: Colors.white.withValues(alpha: 0.8),
                                 child: const Icon(Icons.chevron_left, color: Colors.black),
                               ),
                             ),
@@ -130,8 +130,9 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
                               child: GestureDetector(
                                 onTap: () async {
                                   final success = await cartProvider.clearCart();
-                                  if (success) {                                    FlushbarHelper.show(context, "Cart cleared");
-
+                                  if (!context.mounted) return;
+                                  if (success) {
+                                    FlushbarHelper.show(context, "Cart cleared", isSuccess: true);
                                   }
                                 },
                                 child: Container(
@@ -212,10 +213,11 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
                                         child: ElevatedButton(
                                           onPressed: cartProvider.isLoading ? null : () async {
                                             final success = await cartProvider.checkout();
+                                            if (!context.mounted) return;
                                             if (success) {
                                               _showClaimDialog(context);
-                                            } else {                                              FlushbarHelper.show(context, "Failed to place order");
-
+                                            } else {
+                                              FlushbarHelper.show(context, "Failed to place order");
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
@@ -296,20 +298,14 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
       child: Row(
         children: [
           // Product Image
-          Container(
-            height: 80,
+          PremiumImageWidget(
+            imageUrl: item.productImageUrl ?? item.productImageBase64,
             width: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: item.productImageBase64 != null
-                ? DecorationImage(
-                    image: MemoryImage(base64Decode(item.productImageBase64!)),
-                    fit: BoxFit.contain,
-                  )
-                : const DecorationImage(
-                    image: AssetImage("assets/Images/AddToCartScreen/product_one.jpg"),
-                    fit: BoxFit.contain,
-                  ),
+            height: 80,
+            borderRadius: BorderRadius.circular(8),
+            fallbackWidget: Image.asset(
+              "assets/Images/AddToCartScreen/product_one.jpg",
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(width: 15),

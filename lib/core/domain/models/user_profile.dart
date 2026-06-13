@@ -11,8 +11,12 @@ class UserProfile {
   final double? longitude;
   final String role;
   final bool active;
+  final String? imageUrl;
   final String? imageBase64;
   final String? fcmToken;
+  final bool? tncAccepted;
+  final String? tncAcceptedAt;
+  final String? tncVersion;
 
   UserProfile({
     required this.id,
@@ -27,8 +31,12 @@ class UserProfile {
     this.longitude,
     required this.role,
     required this.active,
+    this.imageUrl,
     this.imageBase64,
     this.fcmToken,
+    this.tncAccepted,
+    this.tncAcceptedAt,
+    this.tncVersion,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -45,8 +53,12 @@ class UserProfile {
       longitude: (json['longitude'] as num?)?.toDouble(),
       role: json['role'] ?? 'CUSTOMER', // Default to customer if missing
       active: json['active'] ?? false,
+      imageUrl: json['imageUrl'] ?? json['imageBase64'],
       imageBase64: json['imageBase64'],
       fcmToken: json['fcmToken'],
+      tncAccepted: json['tncAccepted'],
+      tncAcceptedAt: json['tncAcceptedAt'],
+      tncVersion: json['tncVersion'],
     );
   }
 
@@ -64,8 +76,12 @@ class UserProfile {
       'longitude': longitude,
       'role': role,
       'active': active,
+      'imageUrl': imageUrl,
       'imageBase64': imageBase64,
       'fcmToken': fcmToken,
+      'tncAccepted': tncAccepted,
+      'tncAcceptedAt': tncAcceptedAt,
+      'tncVersion': tncVersion,
     };
   }
 }

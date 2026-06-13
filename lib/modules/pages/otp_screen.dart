@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/utils/flushbar_helper.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:provider/provider.dart';
 import '../../provider/customer/auth_provider.dart';
-import 'home_screen.dart';
+import 'tnc_acceptance_screen.dart';
 
 class OTPScreen extends StatefulWidget {
   const OTPScreen({super.key});
@@ -32,7 +31,6 @@ class _OTPScreenState extends State<OTPScreen> {
   String get _otp => _controllers.map((c) => c.text).join();
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
@@ -50,7 +48,7 @@ class _OTPScreenState extends State<OTPScreen> {
 
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
             ),
           ),
 
@@ -205,15 +203,32 @@ class _OTPScreenState extends State<OTPScreen> {
 
     if (success) {
       if (context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const SalonIDScreen()),
-          (route) => false,
-        );
+        final user = auth.userProfile;
+        if (user != null && (user.tncAccepted == false || user.tncVersion != "v1.0")) {
+          Future.microtask(() {
+            if (context.mounted) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const TncAcceptanceScreen()),
+                (route) => false,
+              );
+            }
+          });
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+            (route) => false,
+          );
+        }
       }
     } else {
-      if (context.mounted) {        FlushbarHelper.show(context, auth.errorMessage ?? "Registration failed");
-
+      if (context.mounted) {
+        if (auth.errorMessage?.contains("Terms & Conditions not accepted") == true) {
+          FlushbarHelper.show(context, "Please accept Terms & Conditions to continue");
+        } else {
+          FlushbarHelper.show(context, auth.errorMessage ?? "Registration failed");
+        }
       }
     }
   }
@@ -256,21 +271,4 @@ class _OTPScreenState extends State<OTPScreen> {
     );
   }
 
-  // SOCIAL ICON
-  Widget _socialIcon(IconData? icon, Color bgColor, {bool isGoogle = false}) {
-    return Container(
-      height: 42,
-      width: 42,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: bgColor,
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Center(
-        child: isGoogle
-            ? const Icon(Icons.g_mobiledata, color: Colors.red, size: 30)
-            : Icon(icon, color: Colors.white, size: 22),
-      ),
-    );
-  }
 }

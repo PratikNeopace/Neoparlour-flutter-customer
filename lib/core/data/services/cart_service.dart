@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../domain/models/cart_item.dart';
 import '../../domain/models/order_model.dart';
 import '../api_client.dart';
@@ -12,7 +13,7 @@ class CartService {
         'quantity': quantity,
       });
     } catch (e) {
-      print("Error adding to cart: $e");
+      debugPrint("Error adding to cart: $e");
       rethrow;
     }
   }
@@ -20,10 +21,10 @@ class CartService {
   Future<CartResponse> getCart() async {
     try {
       final response = await _apiClient.dio.get('cart');
-      print("CART RESPONSE: ${response.data}");
+      debugPrint("CART RESPONSE: ${response.data}");
       return CartResponse.fromJson(response.data);
     } catch (e) {
-      print("Error getting cart: $e");
+      debugPrint("Error getting cart: $e");
       rethrow;
     }
   }
@@ -32,7 +33,7 @@ class CartService {
     try {
       await _apiClient.dio.delete('cart/remove/$productId');
     } catch (e) {
-      print("Error removing item from cart: $e");
+      debugPrint("Error removing item from cart: $e");
       rethrow;
     }
   }
@@ -41,7 +42,7 @@ class CartService {
     try {
       await _apiClient.dio.delete('cart/clear');
     } catch (e) {
-      print("Error clearing cart: $e");
+      debugPrint("Error clearing cart: $e");
       rethrow;
     }
   }
@@ -52,7 +53,7 @@ class CartService {
       final response = await _apiClient.dio.post(url);
       return response.data;
     } catch (e) {
-      print("Error during checkout: $e");
+      debugPrint("Error during checkout: $e");
       rethrow;
     }
   }
@@ -62,7 +63,7 @@ class CartService {
       final response = await _apiClient.dio.post('orders', data: orderData);
       return response.data;
     } catch (e) {
-      print("Error placing order: $e");
+      debugPrint("Error placing order: $e");
       rethrow;
     }
   }
@@ -76,7 +77,7 @@ class CartService {
       });
       return OrderResponse.fromJson(response.data);
     } catch (e) {
-      print("Error getting orders: $e");
+      debugPrint("Error getting orders: $e");
       rethrow;
     }
   }

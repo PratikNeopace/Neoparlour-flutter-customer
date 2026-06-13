@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:neo_parlour/modules/pages/splash_three_screen.dart';
-import 'splash_two_screen.dart';
+
 
 class SplashTwoScreen extends StatefulWidget {
   const SplashTwoScreen({super.key});
@@ -80,13 +79,13 @@ class _SplashTwoScreenState extends State<SplashTwoScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF7A58).withOpacity(0.35),
+                    color: const Color(0xFFFF7A58).withValues(alpha: 0.35),
                     blurRadius: 60,
                     spreadRadius: 30,
                     offset: const Offset(0, -10),
                   ),
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),

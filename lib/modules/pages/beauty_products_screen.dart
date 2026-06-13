@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,8 +5,9 @@ import 'package:provider/provider.dart';
 import '../../provider/customer/product_provider.dart';
 import '../../core/domain/models/product.dart';
 import '../../widgets/custom_nav_bar.dart';
+import '../../widgets/premium_image.dart';
 import 'home_screen.dart';
-import 'Product_details_screen.dart';
+import 'product_details_screen.dart';
 import 'add_to_cart.dart';
 
 class BeautyProductsScreen extends StatefulWidget {
@@ -160,9 +160,9 @@ class _BeautyProductsScreenState extends State<BeautyProductsScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.3),
+                Colors.black.withValues(alpha: 0.3),
                 Colors.transparent,
-                const Color(0xFFFF0B01).withOpacity(0.7),
+                const Color(0xFFFF0B01).withValues(alpha: 0.7),
               ],
             ),
           ),
@@ -173,7 +173,7 @@ class _BeautyProductsScreenState extends State<BeautyProductsScreen> {
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.8),
+              backgroundColor: Colors.white.withValues(alpha: 0.8),
               child: const Icon(Icons.chevron_left, color: Colors.black),
             ),
           ),
@@ -321,20 +321,18 @@ class _CategorySectionWidgetState extends State<CategorySectionWidget> {
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  const Color(0xFFFF0B01).withOpacity(0.7),
-                  const Color(0xFFFFEEED).withOpacity(0.07),
-                  Colors.white.withOpacity(0),
+                  const Color(0xFFFF0B01).withValues(alpha: 0.7),
+                  const Color(0xFFFFEEED).withValues(alpha: 0.07),
+                  Colors.white.withValues(alpha: 0),
                 ],
               ),
             ),
-            child: ClipRRect(
+            child: PremiumImageWidget(
+              imageUrl: product.imageUrl ?? product.imageBase64,
+              width: 137 * scale,
+              height: 165 * scale,
               borderRadius: BorderRadius.circular(16 * scale),
-              child: product.imageBase64 != null
-                  ? Image.memory(
-                base64Decode(product.imageBase64!),
-                fit: BoxFit.cover,
-              )
-                  : Image.asset(
+              fallbackWidget: Image.asset(
                 "assets/Images/TopExpertsScreen/staff_placeholder.jpeg",
                 fit: BoxFit.cover,
               ),

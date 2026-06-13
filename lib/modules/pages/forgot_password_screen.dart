@@ -43,11 +43,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.sendForgotPasswordOtp(mobile);
+    if (!mounted) return;
     if (success) {
-      setState(() => _otpSent = true);      FlushbarHelper.show(context, "OTP sent successfully to WhatsApp");
-
-    } else {      FlushbarHelper.show(context, auth.errorMessage ?? "Failed to send OTP");
-
+      setState(() => _otpSent = true);
+      FlushbarHelper.show(context, "OTP sent successfully to WhatsApp", isSuccess: true);
+    } else {
+      FlushbarHelper.show(context, auth.errorMessage ?? "Failed to send OTP");
     }
   }
 
@@ -69,17 +70,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.resetPasswordWithOtp(mobile, otp, newPassword);
-    if (success) {      FlushbarHelper.show(context, "Password reset successful. Please login.");
-
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    } else {      FlushbarHelper.show(context, auth.errorMessage ?? "Reset failed");
-
+    if (!mounted) return;
+    if (success) {
+      FlushbarHelper.show(context, "Password reset successful. Please login.", isSuccess: true);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } else {
+      FlushbarHelper.show(context, auth.errorMessage ?? "Reset failed");
     }
   }
 
@@ -113,9 +113,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.1),
+                            Colors.black.withValues(alpha: 0.1),
                             Colors.transparent,
-                            const Color(0XFFFF3502).withOpacity(0.6),
+                            const Color(0XFFFF3502).withValues(alpha: 0.6),
                           ],
                         ),
                       ),
@@ -165,7 +165,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: CircleAvatar(
-                      backgroundColor: Colors.white.withOpacity(0.4),
+                      backgroundColor: Colors.white.withValues(alpha: 0.4),
                       child: const Icon(
                         Icons.chevron_left,
                         color: Colors.black,

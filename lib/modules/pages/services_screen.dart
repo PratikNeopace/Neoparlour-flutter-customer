@@ -79,8 +79,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Color(0XFF8B8B8B).withOpacity(0.5),
-                                  Color(0xFFFF3502).withOpacity(0.5),
+                                  Color(0XFF8B8B8B).withValues(alpha: 0.5),
+                                  Color(0xFFFF3502).withValues(alpha: 0.5),
                                 ],
                               ),
                             ),
@@ -108,7 +108,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                           onTap: () => Navigator.pop(context),
                           child: CircleAvatar(
                             radius: 18,
-                            backgroundColor: Colors.white.withOpacity(0.4),
+                            backgroundColor: Colors.white.withValues(alpha: 0.4),
                             child: const Icon(
                               Icons.chevron_left,
                               color: Colors.black,
@@ -208,6 +208,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
         // Clear previous and set new selection
         serviceProvider.preselectServices([service.id]);
         bookingProvider.applyOffer(null);
+        bookingProvider.setSelectedPackage(null);
 
         Navigator.push(
           context,
@@ -234,7 +235,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      const Color(0xFFFF0B01).withOpacity(0.7),
+                      const Color(0xFFFF0B01).withValues(alpha: 0.7),
                     ],
                   ),
                 ),
@@ -264,12 +265,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  Widget _buildServicePlaceholder() {
-    return Container(
-      color: Colors.grey.shade300,
-      child: const Icon(Icons.content_cut, size: 40, color: Colors.grey),
-    );
-  }
 }
 
 Widget _buildServiceImage(String? imagePath) {

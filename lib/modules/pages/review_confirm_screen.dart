@@ -389,7 +389,7 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
                         onChanged: homeServiceAvailable
                             ? (val) => booking.toggleHomeService(val)
                             : null,
-                        activeColor: Colors.red,
+                        activeThumbColor: Colors.red,
                       ),
                     ],
                   ),
@@ -538,8 +538,8 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.0),
-                  const Color(0xFFFF3502).withOpacity(0.8),
+                  Colors.black.withValues(alpha: 0.0),
+                  const Color(0xFFFF3502).withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -599,7 +599,7 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
               width: 32 * scale,
               height: 32 * scale,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.chevron_left, color: Colors.black),

@@ -3,11 +3,12 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 
 import 'edit_profile_screen.dart';
-import 'change_password_screen.dart';
 import 'login_screen.dart';
 import 'my_booking_screen.dart';
 import 'my_orders_screen.dart';
 import 'salon_id_screen.dart';
+import 'about_us_screen.dart';
+import 'support_screen.dart';
 import '../../provider/customer/auth_provider.dart';
 
 class DrawerScreen extends StatelessWidget {
@@ -19,10 +20,10 @@ class DrawerScreen extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Drawer',
-      barrierColor: Colors.black.withOpacity(0.15),
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, __, ___) => const DrawerScreen(),
-      transitionBuilder: (_, animation, __, child) {
+      pageBuilder: (_, _, _) => const DrawerScreen(),
+      transitionBuilder: (_, animation, _, child) {
         return SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(1, 0),
@@ -110,11 +111,25 @@ class DrawerScreen extends StatelessWidget {
               _buildRow(
                 "assets/Images/DrawerScreen/about_us_icon.svg",
                 'About Us',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AboutUsScreen()),
+                  );
+                },
               ),
               _divider(),
               _buildRow(
                 "assets/Images/DrawerScreen/support_icon.svg",
                 'Support',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SupportScreen()),
+                  );
+                },
               ),
               _divider(),
               _buildRow(
@@ -231,22 +246,6 @@ class DrawerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRowPng(String icon, String title, {VoidCallback? onTap}) {
-    return ListTile(
-      visualDensity: const VisualDensity(vertical: -2),
-      leading: Image.asset(icon, width: 20, height: 20),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-      ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        size: 15,
-        color: Color(0XFF868686),
-      ),
-      onTap: onTap,
-    );
-  }
 
   Widget _buildRowIcon(IconData iconData, String title, {VoidCallback? onTap}) {
     return ListTile(

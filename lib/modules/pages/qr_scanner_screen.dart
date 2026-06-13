@@ -76,7 +76,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
                   _isScanning = false;
                   await controller.stop();
 
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pop(context, scannedValue);
                   }
                 }
@@ -105,7 +105,7 @@ class ScannerOverlay extends StatelessWidget {
         /// Dark overlay with center cutout
         ColorFiltered(
           colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.6),
+            Colors.black.withValues(alpha: 0.6),
             BlendMode.srcOut,
           ),
           child: Stack(

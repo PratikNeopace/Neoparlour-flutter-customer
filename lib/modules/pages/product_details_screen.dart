@@ -5,10 +5,10 @@ import 'package:provider/provider.dart';
 import '../../provider/customer/product_provider.dart';
 import '../../provider/customer/cart_provider.dart';
 import '../../widgets/custom_nav_bar.dart';
-import 'dart:convert';
 import 'add_to_cart.dart';
 import 'home_screen.dart';
 import '../../provider/customer/auth_provider.dart';
+import '../../widgets/premium_image.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final int productId;
@@ -111,32 +111,36 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       children: [
                         ClipPath(
                           clipper: ProductDetailsHeaderClipper(),
-                          child: Container(
+                          child: SizedBox(
                             height: 300,
                             width: double.infinity,
-                            decoration: BoxDecoration(
-                              image: product.imageBase64 != null
-                                  ? DecorationImage(
-                                      image: MemoryImage(base64Decode(product.imageBase64!)),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : const DecorationImage(
-                                      image: AssetImage("assets/Images/AddToCartScreen/background_add_to_cart.jpg"),
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withOpacity(0.1),
-                                    Colors.transparent,
-                                    const Color(0XFFFF3502).withOpacity(0.6),
-                                  ],
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                PremiumImageWidget(
+                                  imageUrl: product.imageUrl ?? product.imageBase64,
+                                  width: double.infinity,
+                                  height: 300,
+                                  borderRadius: BorderRadius.zero,
+                                  fallbackWidget: Image.asset(
+                                    "assets/Images/AddToCartScreen/background_add_to_cart.jpg",
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
-                              ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.1),
+                                        Colors.transparent,
+                                        const Color(0XFFFF3502).withValues(alpha: 0.6),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -147,7 +151,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           child: GestureDetector(
                             onTap: () => Navigator.pop(context),
                             child: CircleAvatar(
-                              backgroundColor: Colors.white.withOpacity(0.8),
+                              backgroundColor: Colors.white.withValues(alpha: 0.8),
                               child: const Icon(Icons.chevron_left, color: Colors.black),
                             ),
                           ),
@@ -158,9 +162,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           left: 20,
                           child: Row(
                             children: [
-                              if (product.imageBase64 != null)
-                                _buildThumbnailFromBase64(product.imageBase64!),
-                              ...product.additionalImagesBase64.take(2).map((img) => _buildThumbnailFromBase64(img)),
+                              if (product.imageUrl != null || product.imageBase64 != null)
+                                _buildThumbnail(product.imageUrl ?? product.imageBase64!),
+                              ...(product.additionalImageUrls.isNotEmpty
+                                      ? product.additionalImageUrls
+                                      : product.additionalImagesBase64)
+                                  .take(2)
+                                  .map((img) => _buildThumbnail(img)),
                             ],
                           ),
                         ),
@@ -249,10 +257,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                           child: OutlinedButton(
                                             onPressed: cartProvider.isLoading ? null : () async {
                                               final success = await cartProvider.addToCart(product.id, quantity);
-                                              if (success) {                                                FlushbarHelper.show(context, "Added to cart successfully");
-
-                                              } else {                                                FlushbarHelper.show(context, "Failed to add to cart");
-
+                                              if (!context.mounted) return;
+                                              if (success) {
+                                                FlushbarHelper.show(context, "Added to cart successfully", isSuccess: true);
+                                              } else {
+                                                FlushbarHelper.show(context, "Failed to add to cart");
                                               }
                                             },
                                             style: OutlinedButton.styleFrom(
@@ -289,10 +298,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                                   }
                                                 ],
                                               );
+                                              if (!context.mounted) return;
                                               if (success) {
                                                 _showOrderConfirmedDialog(context);
-                                              } else {                                                FlushbarHelper.show(context, "Failed to process Buy Now");
-
+                                              } else {
+                                                FlushbarHelper.show(context, "Failed to process Buy Now");
                                               }
                                             },
                                             style: ElevatedButton.styleFrom(
@@ -362,7 +372,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildThumbnailFromBase64(String base64) {
+  Widget _buildThumbnail(String imgStr) {
     return Container(
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.all(6),
@@ -373,24 +383,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.grey.shade300),
         ),
-        child: Image.memory(base64Decode(base64), fit: BoxFit.contain)
+        child: PremiumImageWidget(
+          imageUrl: imgStr,
+          width: 46,
+          height: 46,
+          borderRadius: BorderRadius.circular(4),
+          fallbackWidget: const Icon(Icons.image, color: Colors.grey),
+        ),
     );
   }
 
-  Widget _buildThumbnail(String path) {
-    return Container(
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.all(6),
-        height: 58,
-        width: 58,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Image.asset("assets/Images/AddToCartScreen/product_one.jpg",fit: BoxFit.contain)
-    );
-  }
+
 
   Widget _buildQuantitySelector() {
     return Container(

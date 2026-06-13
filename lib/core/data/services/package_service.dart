@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../../domain/models/package_model.dart';
 
@@ -13,7 +14,7 @@ class PackageService {
           .map((json) => PackageModel.fromJson(json))
           .toList();
     } catch (e) {
-      print("Error fetching packages: $e");
+      debugPrint("Error fetching packages: $e");
       rethrow;
     }
   }

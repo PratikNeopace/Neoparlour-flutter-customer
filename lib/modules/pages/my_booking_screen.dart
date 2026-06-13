@@ -223,7 +223,7 @@ class _MyBookingScreenState extends State<MyBookingScreen> with SingleTickerProv
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0XFFFF0B01).withOpacity(0.35),
+                            color: const Color(0XFFFF0B01).withValues(alpha: 0.35),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           )
@@ -307,9 +307,9 @@ Widget _navButton({
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.3),
+                    Colors.black.withValues(alpha: 0.3),
                     Colors.transparent,
-                    const Color(0XFFFF3502).withOpacity(0.7),
+                    const Color(0XFFFF3502).withValues(alpha: 0.7),
                   ],
                 ),
               ),
@@ -334,7 +334,7 @@ Widget _navButton({
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.4),
+              backgroundColor: Colors.white.withValues(alpha: 0.4),
               child: const Icon(Icons.chevron_left, color: Colors.black),
             ),
           ),
@@ -389,7 +389,7 @@ class BookingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),

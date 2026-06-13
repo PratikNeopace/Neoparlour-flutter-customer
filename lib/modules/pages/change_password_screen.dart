@@ -53,8 +53,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Color(0XFF8B8B8B).withOpacity(0.5),
-                            const Color(0XFFFF3502).withOpacity(0.7),
+                            Color(0XFF8B8B8B).withValues(alpha: 0.5),
+                            const Color(0XFFFF3502).withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -94,7 +94,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   child: GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: CircleAvatar(
-                      backgroundColor: Colors.white.withOpacity(0.4),
+                      backgroundColor: Colors.white.withValues(alpha: 0.4),
                       child: const Icon(Icons.chevron_left, color: Colors.black),
                     ),
                   ),

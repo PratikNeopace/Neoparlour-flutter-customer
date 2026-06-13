@@ -6,6 +6,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/constants/app_assets.dart';
 
+import 'premium_image.dart';
+
 /// A senior-level reusable widget for displaying staff images with fallback logic.
 class StaffAvatar extends StatelessWidget {
   final String? imageAsBase64;
@@ -70,11 +72,12 @@ class StaffAvatar extends StatelessWidget {
 
     // 3. Priority: Network Image
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return Image.network(
-        imageUrl!,
-        fit: BoxFit.cover,
-        alignment: Alignment.topCenter,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
+      return PremiumImageWidget(
+        imageUrl: imageUrl,
+        width: width ?? size,
+        height: height ?? size,
+        borderRadius: BorderRadius.circular(borderRadius),
+        fallbackWidget: _buildFallback(),
       );
     }
 

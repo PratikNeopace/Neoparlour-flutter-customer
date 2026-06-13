@@ -136,7 +136,7 @@ class BookingProvider extends ChangeNotifier {
       _homeServiceCharge = await _bookingService.getHomeServiceCharges(salonId);
       notifyListeners();
     } catch (e) {
-      print("Error fetching home service charges in provider: $e");
+      debugPrint("Error fetching home service charges in provider: $e");
     }
   }
 
@@ -271,7 +271,7 @@ class BookingProvider extends ChangeNotifier {
 
     // Use provided salonId, or staff's salonId, or default to "1" (as requested for tenantName)
     // The backend expects a Long, so we ensure it's a numeric-compatible value.
-    final effectiveSalonId = salonId ?? staff?.salonId?.toString() ?? "1";
+    final effectiveSalonId = salonId ?? staff?.salonId.toString() ?? "1";
 
     final requestData = {
       "salonId": int.tryParse(effectiveSalonId) ?? 1, 
@@ -375,7 +375,7 @@ class BookingProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = ErrorHandler.getErrorMessage(e);
-      print("Error in fetchUserAppointments: $e");
+      debugPrint("Error in fetchUserAppointments: $e");
     } finally {
       _isLoadingAppointments = false;
       _isLoadingMore = false;

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 
 class FeedbackService {
@@ -11,7 +12,7 @@ class FeedbackService {
       );
       return response.data;
     } catch (e) {
-      print("Error submitting feedback: $e");
+      debugPrint("Error submitting feedback: $e");
       rethrow;
     }
   }

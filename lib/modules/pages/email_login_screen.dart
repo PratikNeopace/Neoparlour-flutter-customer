@@ -111,7 +111,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       clipper: HeaderClipper(),
       child: Stack(
         children: [
-          Container(
+          SizedBox(
             height: 320,
             width: double.infinity,
             child: Image.asset(
@@ -128,7 +128,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Colors.red.withOpacity(0.8),
+                  Colors.red.withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -183,7 +183,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, spreadRadius: 1)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, spreadRadius: 1)],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,

@@ -47,13 +47,6 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
     });
   }
 
-  void _scrollToBottom() {
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +77,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   child: Consumer<BookingProvider>(
                     builder: (context, provider, child) {
                       final isStaffPreSelected =
-                          context.read<StaffProvider>().hasUserSelected &&
-                          context.read<StaffProvider>().selectedStaff != null;
+                          provider.preSelectedStaffId != null;
 
                       return GestureDetector(
                         onTap: provider.selectedSlot == null
@@ -148,8 +140,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
               builder: (context, provider, child) {
                 final enabled = provider.selectedSlot != null;
                 final isStaffPreSelected =
-                    context.read<StaffProvider>().hasUserSelected &&
-                    context.read<StaffProvider>().selectedStaff != null;
+                    provider.preSelectedStaffId != null;
 
                 return FloatingActionButton(
                   heroTag: "nextBtn",
@@ -238,9 +229,9 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.15),
+                    Colors.black.withValues(alpha: 0.15),
                     Colors.transparent,
-                    const Color(0xFFFF3502).withOpacity(0.35),
+                    const Color(0xFFFF3502).withValues(alpha: 0.35),
                   ],
                 ),
               ),
@@ -257,7 +248,7 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   width: 34 * scale,
                   height: 34 * scale,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.35),
+                    color: Colors.white.withValues(alpha: 0.35),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.chevron_left, color: Colors.black),

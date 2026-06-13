@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as apiClient;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/data/services/auth_service.dart';
 import '../../core/domain/models/login_request.dart';
@@ -69,9 +67,9 @@ class AuthProvider extends ChangeNotifier {
         } else {
           fcmToken = await FirebaseMessaging.instance.getToken();
         }
-        print("FCM Token for Login: $fcmToken");
+        debugPrint("FCM Token for Login: $fcmToken");
       } catch (e) {
-        print("Error fetching FCM token: $e");
+        debugPrint("Error fetching FCM token: $e");
       }
 
       final request = LoginRequest(
@@ -80,7 +78,7 @@ class AuthProvider extends ChangeNotifier {
         fcmToken: fcmToken,
       );
       
-      print("Login Request Payload: ${request.toJson()}");
+      debugPrint("Login Request Payload: ${request.toJson()}");
       
       final response = await _authService.login(request);
       
@@ -90,7 +88,7 @@ class AuthProvider extends ChangeNotifier {
       _userId = response.id;
       _tenantName = response.tenantName;
       
-      print("Login Successful for User: $_userId, Tenant: $_tenantName, Token: ${_token?.substring(0, 10)}...");
+      debugPrint("Login Successful for User: $_userId, Tenant: $_tenantName, Token: ${_token?.substring(0, 10)}...");
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', _token!);
@@ -99,11 +97,19 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('tenantName', _tenantName!);
       if (_userId != null) await prefs.setInt('userId', _userId!);
       
+      if (_userId != null) {
+        try {
+          _userProfile = await _authService.getUserProfile(_userId!);
+        } catch (e) {
+          debugPrint("Profile fetch error in login: $e");
+        }
+      }
+
       _setLoading(false);
       return true;
     } catch (e) {
       _errorMessage = ErrorHandler.getErrorMessage(e);
-      print("Login Error: $_errorMessage");
+      debugPrint("Login Error: $_errorMessage");
       _setLoading(false);
       return false;
     }
@@ -130,7 +136,7 @@ class AuthProvider extends ChangeNotifier {
       _userId = response.id;
       _tenantName = response.tenantName;
       
-      print("Switch Tenant Successful. New User: $_userId, Tenant: $_tenantName, Token: ${_token?.substring(0, 10)}...");
+      debugPrint("Switch Tenant Successful. New User: $_userId, Tenant: $_tenantName, Token: ${_token?.substring(0, 10)}...");
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', _token!);
@@ -152,7 +158,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _authService.logout();
     } catch (e) {
-      print("Logout API Error: $e");
+      debugPrint("Logout API Error: $e");
     }
     
     final prefs = await SharedPreferences.getInstance();
@@ -169,7 +175,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserProfile() async {
-    print("Fetching User Profile for ID: $_userId...");
+    debugPrint("Fetching User Profile for ID: $_userId...");
     if (_userId == null) return;
 
     _isLoadingProfile = true;
@@ -180,7 +186,7 @@ class AuthProvider extends ChangeNotifier {
       _userProfile = await _authService.getUserProfile(_userId!);
     } catch (e) {
       _errorMessage = ErrorHandler.getErrorMessage(e);
-      print("Profile Fetch Error: $_errorMessage");
+      debugPrint("Profile Fetch Error: $_errorMessage");
     } finally {
       _isLoadingProfile = false;
       notifyListeners();
@@ -217,11 +223,11 @@ class AuthProvider extends ChangeNotifier {
   Future<void> updateFcmTokenOnServer(String token) async {
     if (_userId == null || _token == null) return;
     
-    print("Updating FCM Token on server: $token");
+    debugPrint("Updating FCM Token on server: $token");
     try {
       await _authService.updateUserProfile(_userId!, {'fcmToken': token});
     } catch (e) {
-      print("Failed to update FCM token on server: $e");
+      debugPrint("Failed to update FCM token on server: $e");
     }
   }
 

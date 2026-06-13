@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:flutter/foundation.dart';
+
 class ApiClient {
   static const String baseUrl = 'https://sb.neoparlour.com/api/';
   late Dio dio;
@@ -16,7 +18,7 @@ class ApiClient {
       onRequest: (options, handler) async {
         // Skip token for public endpoints if extra['skipToken'] is set
         if (options.extra['skipToken'] == true) {
-          print("API Request: ${options.method} ${options.uri} (Skipping Token)");
+          debugPrint("API Request: ${options.method} ${options.uri} (Skipping Token)");
           return handler.next(options);
         }
 
@@ -26,12 +28,12 @@ class ApiClient {
           options.headers['Authorization'] = 'Bearer $token';
         }
         
-        print("API Request: ${options.method} ${options.uri}");
+        debugPrint("API Request: ${options.method} ${options.uri}");
         return handler.next(options);
       },
       onError: (e, handler) {
         // Handle global errors here
-        print("API Error: [${e.response?.statusCode}] ${e.response?.data ?? e.message}");
+        debugPrint("API Error: [${e.response?.statusCode}] ${e.response?.data ?? e.message}");
         return handler.next(e);
       },
     ));

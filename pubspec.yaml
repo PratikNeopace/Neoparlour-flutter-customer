@@ -23,6 +23,9 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   http: ^1.6.0
   another_flushbar: ^2.2.4
+  url_launcher: ^6.3.2
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

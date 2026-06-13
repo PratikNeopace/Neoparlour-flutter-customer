@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../../domain/models/staff.dart';
 
@@ -16,10 +17,10 @@ class StaffDataService {
       final response = await _apiClient.dio.get(
         'staff/search',
         queryParameters: {
-          if (name != null) 'name': name,
-          if (phone != null) 'phone': phone,
-          if (email != null) 'email': email,
-          if (status != null) 'status': status,
+          ?name: name,
+          ?phone: phone,
+          ?email: email,
+          ?status: status,
           'page': page,
           'size': size,
           'sortBy': 'id',
@@ -35,7 +36,7 @@ class StaffDataService {
       }
       return [];
     } catch (e) {
-      print("Error fetching staff: $e");
+      debugPrint("Error fetching staff: $e");
       rethrow;
     }
   }
@@ -57,7 +58,7 @@ class StaffDataService {
       }
       return [];
     } catch (e) {
-      print("Error fetching available staff: $e");
+      debugPrint("Error fetching available staff: $e");
       rethrow;
     }
   }
@@ -74,7 +75,7 @@ class StaffDataService {
       }
       return [];
     } catch (e) {
-      print("Error fetching all staff: $e");
+      debugPrint("Error fetching all staff: $e");
       rethrow;
     }
   }

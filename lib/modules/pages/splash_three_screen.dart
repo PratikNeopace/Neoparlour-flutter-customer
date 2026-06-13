@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:neo_parlour/modules/pages/login_screen.dart';
-import 'package:neo_parlour/modules/pages/register_screen.dart';
 
 class SplashThreeScreen extends StatefulWidget {
   const SplashThreeScreen({super.key});
@@ -77,13 +76,13 @@ class _SplashThreeScreenState extends State<SplashThreeScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF7A58).withOpacity(0.35),
+                    color: const Color(0xFFFF7A58).withValues(alpha: 0.35),
                     blurRadius: 60,
                     spreadRadius: 30,
                     offset: const Offset(0, -10),
                   ),
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../../domain/models/offer.dart';
 
@@ -16,7 +17,7 @@ class OfferDataService {
       }
       return [];
     } catch (e) {
-      print("Error fetching active offers: $e");
+      debugPrint("Error fetching active offers: $e");
       rethrow;
     }
   }

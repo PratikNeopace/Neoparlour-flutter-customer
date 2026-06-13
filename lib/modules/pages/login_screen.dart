@@ -5,9 +5,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neo_parlour/modules/pages/register_screen.dart';
 import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:neo_parlour/modules/pages/forgot_password_screen.dart';
-import 'package:neo_parlour/core/utils/validator.dart';
 import 'package:provider/provider.dart';
 import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/tnc_acceptance_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,19 +54,34 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await authProvider.login(username, password);
 
     if (success && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const SalonIDScreen()),
-      );
-    } else if (mounted) {      FlushbarHelper.show(context, authProvider.errorMessage ?? "Login failed");
-
+      final user = authProvider.userProfile;
+      if (user != null && (user.tncAccepted == false || user.tncVersion != "v1.0")) {
+        Future.microtask(() {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const TncAcceptanceScreen()),
+            );
+          }
+        });
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+        );
+      }
+    } else if (mounted) {
+      if (authProvider.errorMessage?.contains("Terms & Conditions not accepted") == true) {
+        FlushbarHelper.show(context, "Please accept Terms & Conditions to continue");
+      } else {
+        FlushbarHelper.show(context, authProvider.errorMessage ?? "Login failed");
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
-    final double bottomSafe = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       body: Stack(
@@ -95,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0XFFFF7A58).withOpacity(0.25),
+                    color: const Color(0XFFFF7A58).withValues(alpha: 0.25),
                     blurRadius: 25,
                     spreadRadius: 10,
                     offset: const Offset(0, 4),
@@ -400,29 +415,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _socialSvgIcon(
-    String asset, {
-    required Color bgColor,
-    bool border = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(right: 15),
-      height: 40,
-      width: 40,
-      decoration: BoxDecoration(
-        color: bgColor,
-        shape: BoxShape.circle,
-        border: border ? Border.all(color: Colors.grey.shade200) : null,
-      ),
-      child: Center(
-        child: SvgPicture.asset(
-          asset,
-          height: 20,
-          colorFilter: bgColor == Colors.white
-              ? null
-              : const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-        ),
-      ),
-    );
-  }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../../domain/models/neo_service.dart';
 
@@ -15,7 +16,7 @@ class ServiceDataService {
       }
       return [];
     } catch (e) {
-      print("Error fetching services: $e");
+      debugPrint("Error fetching services: $e");
       rethrow;
     }
   }

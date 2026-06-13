@@ -40,6 +40,8 @@ class _SplashScreenState extends State<SplashScreen> {
     // Wait for the provider to finish loading from SharedPreferences
     await authProvider.initialization;
 
+    if (!mounted) return;
+
     if (authProvider.isAuthenticated) {
       if (authProvider.tenantName != null && authProvider.tenantName!.isNotEmpty) {
         Navigator.pushReplacement(
@@ -117,13 +119,13 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF7A58).withOpacity(0.35),
+                      color: const Color(0xFFFF7A58).withValues(alpha: 0.35),
                       blurRadius: 60,
                       spreadRadius: 30,
                       offset: const Offset(0, -10),
                     ),
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),

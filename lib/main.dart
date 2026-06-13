@@ -21,7 +21,7 @@ import 'package:neo_parlour/provider/customer/order_provider.dart';
 
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  print("Background message received: ${message.notification?.title}");
+  debugPrint("Background message received: ${message.notification?.title}");
 }
 
 void main() async {

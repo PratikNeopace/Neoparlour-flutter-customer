@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -10,10 +9,11 @@ import '../../provider/customer/product_provider.dart';
 import '../../provider/customer/package_provider.dart';
 import '../../provider/customer/booking_provider.dart';
 import 'select_date_time_screen.dart';
-import 'Product_details_screen.dart';
+import 'product_details_screen.dart';
 import 'select_services_screen.dart';
 
 import '../../widgets/staff_image_widgets.dart';
+import '../../widgets/premium_image.dart';
 
 class CustomSearchDelegate extends SearchDelegate {
   @override
@@ -64,7 +64,7 @@ class CustomSearchDelegate extends SearchDelegate {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 80, color: Colors.grey.withOpacity(0.3)),
+            Icon(Icons.search, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
               'Search for something...',
@@ -109,7 +109,7 @@ class CustomSearchDelegate extends SearchDelegate {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey.withOpacity(0.3)),
+            Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             Text(
               'No results found for "$query"',
@@ -138,6 +138,7 @@ class CustomSearchDelegate extends SearchDelegate {
                     bookingProvider.setPreSelectedStaff(null);
                     serviceProvider.preselectServices([s.id]);
                     bookingProvider.applyOffer(null);
+                    bookingProvider.setSelectedPackage(null);
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const SelectDateTimeScreen()),
@@ -170,6 +171,7 @@ class CustomSearchDelegate extends SearchDelegate {
                     final bookingProvider = context.read<BookingProvider>();
                     staffProvider.selectStaff(st);
                     bookingProvider.applyOffer(null);
+                    bookingProvider.setSelectedPackage(null);
                     bookingProvider.setPreSelectedStaff(st.id, durationMinutes: 45);
                     Navigator.push(
                       context,
@@ -184,16 +186,12 @@ class CustomSearchDelegate extends SearchDelegate {
                   context,
                   title: p.name,
                   subtitle: '\$${p.price}',
-                  leading: ClipRRect(
+                  leading: PremiumImageWidget(
+                    imageUrl: p.imageUrl ?? p.imageBase64,
+                    width: 50,
+                    height: 50,
                     borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      color: Colors.grey[100],
-                      child: p.imageBase64 != null
-                          ? Image.memory(base64Decode(p.imageBase64!), fit: BoxFit.cover)
-                          : const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
-                    ),
+                    fallbackWidget: const Icon(Icons.shopping_bag_outlined, color: Colors.grey),
                   ),
                   onTap: () {
                     Navigator.push(
@@ -271,7 +269,7 @@ class CustomSearchDelegate extends SearchDelegate {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

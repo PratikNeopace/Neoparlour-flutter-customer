@@ -76,9 +76,9 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.3),
+                            Colors.black.withValues(alpha: 0.3),
                             Colors.transparent,
-                            const Color(0XFFFF3502).withOpacity(0.7),
+                            const Color(0XFFFF3502).withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -112,7 +112,7 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.25),
+                          color: Colors.black.withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 6),
                         ),
@@ -135,7 +135,7 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
                   child: GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: CircleAvatar(
-                      backgroundColor: Colors.white.withOpacity(0.4),
+                      backgroundColor: Colors.white.withValues(alpha: 0.4),
                       child: const Icon(
                         Icons.chevron_left,
                         color: Colors.black,
@@ -201,6 +201,7 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
         // Duration defaults to 45 mins; will be recalculated in SelectDateTimeScreen
         // once services are chosen.
         bookingProvider.applyOffer(null);
+        bookingProvider.setSelectedPackage(null);
         bookingProvider.setPreSelectedStaff(staff.id, durationMinutes: 45);
 
         Navigator.push(
@@ -236,8 +237,8 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.1),
-                      Colors.black.withOpacity(0.8),
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.black.withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -251,7 +252,7 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(

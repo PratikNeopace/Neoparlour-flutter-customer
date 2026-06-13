@@ -8,13 +8,10 @@ import '../../provider/customer/booking_provider.dart';
 import '../../widgets/custom_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'select_staff_screen.dart';
 import 'select_date_time_screen.dart';
 import 'review_confirm_screen.dart';
 import 'home_screen.dart';
 
-import '../../provider/customer/offer_provider.dart';
-import '../../provider/customer/package_provider.dart';
 import '../../core/data/api_client.dart';
 import '../../core/domain/models/neo_service.dart';
 import '../../core/domain/models/offer.dart';
@@ -95,7 +92,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
         _isLoadingMore = false;
       });
     } catch (e) {
-      print("Error fetching services: $e");
+      debugPrint("Error fetching services: $e");
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -174,7 +171,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
         _offersLoadingMore = false;
       });
     } catch (e) {
-      print("Error fetching offers: $e");
+      debugPrint("Error fetching offers: $e");
       if (mounted) {
         setState(() {
           _offersLoading = false;
@@ -226,7 +223,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
         _packagesLoadingMore = false;
       });
     } catch (e) {
-      print("Error fetching packages: $e");
+      debugPrint("Error fetching packages: $e");
       if (mounted) {
         setState(() {
           _packagesLoading = false;
@@ -278,14 +275,6 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     await _fetchOffers(refresh: true);
     await _fetchPackages(refresh: true);
   });
-  }
-
-  void _scrollToBottom() {
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
-    );
   }
 
   /// VALIDATION FUNCTION
@@ -483,8 +472,8 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.0),
-                  const Color(0xFFFF3502).withOpacity(0.8),
+                  Colors.black.withValues(alpha: 0.0),
+                  const Color(0xFFFF3502).withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -514,7 +503,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
               width: 32 * scale,
               height: 32 * scale,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.chevron_left, color: Colors.black),
@@ -725,7 +714,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
                                 ? null
                                 : [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color: Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -1011,7 +1000,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

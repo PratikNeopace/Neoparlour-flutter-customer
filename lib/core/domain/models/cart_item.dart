@@ -1,6 +1,7 @@
 class CartItem {
   final int productId;
   final String productName;
+  final String? productImageUrl;
   final String? productImageBase64;
   final double price;
   final double lineTotal;
@@ -11,6 +12,7 @@ class CartItem {
   CartItem({
     required this.productId,
     required this.productName,
+    this.productImageUrl,
     this.productImageBase64,
     required this.price,
     required this.lineTotal,
@@ -23,6 +25,7 @@ class CartItem {
     return CartItem(
       productId: json['productId'] ?? 0,
       productName: json['productName'] ?? '',
+      productImageUrl: json['productImageUrl'] ?? json['productImageBase64'],
       productImageBase64: json['productImageBase64'],
       price: (json['price'] ?? 0.0).toDouble(),
       lineTotal: (json['lineTotal'] ?? 0.0).toDouble(),
