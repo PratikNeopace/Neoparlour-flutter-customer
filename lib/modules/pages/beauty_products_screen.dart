@@ -1,12 +1,14 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../../provider/customer/product_provider.dart';
 import '../../core/domain/models/product.dart';
 import '../../widgets/custom_nav_bar.dart';
 import '../../widgets/premium_image.dart';
-import 'home_screen.dart';
 import 'product_details_screen.dart';
 import 'add_to_cart.dart';
 
@@ -54,11 +56,21 @@ class _BeautyProductsScreenState extends State<BeautyProductsScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (route) => false,
-          );
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
         },
         backgroundColor: Colors.red,
         shape: const CircleBorder(),
@@ -385,12 +397,12 @@ class _CategorySectionWidgetState extends State<CategorySectionWidget> {
               width: 137 * scale,
               height: 27 * scale,
               decoration: BoxDecoration(
-                color: const Color(0xFFFF0B01),
+                color: product.stock == 0 ? Colors.grey : const Color(0xFFFF0B01),
                 borderRadius: BorderRadius.circular(9 * scale),
               ),
               alignment: Alignment.center,
               child: Text(
-                "Show Details",
+                product.stock == 0 ? "Out of stock" : "Show Details",
                 style: GoogleFonts.poppins(
                   fontSize: 10 * scale,
                   fontWeight: FontWeight.w500,

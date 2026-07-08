@@ -1,7 +1,10 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../modules/pages/services_screen.dart';
-import '../modules/pages/home_screen.dart';
 import '../modules/pages/top_experts_screen.dart';
 import '../modules/pages/notification_screen.dart';
 import '../modules/pages/drawer_screen.dart';
@@ -26,11 +29,21 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
         MaterialPageRoute(builder: (context) => const ServicesScreen()),
       );
     } else if (label == "HOME") {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      );
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
     } else if (label == "EXPERT") {
       Navigator.push(
         context,

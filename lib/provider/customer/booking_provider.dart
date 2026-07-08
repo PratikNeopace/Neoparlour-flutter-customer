@@ -266,8 +266,14 @@ class BookingProvider extends ChangeNotifier {
       }
     }
 
+    // Weekday/slot discount from the selected time slot's discountPercentage
+    double weekdayDiscountAmount = 0.0;
+    if (_selectedSlot != null && _selectedSlot!.discountPercentage != null && _selectedSlot!.discountPercentage! > 0) {
+      weekdayDiscountAmount = originalTotalPrice * (_selectedSlot!.discountPercentage! / 100);
+    }
+
     final totalDiscountAmount = packageSavings + offerDiscountAmount;
-    final finalAmount = (originalTotalPrice - totalDiscountAmount) + (_isHomeService ? _homeServiceCharge : 0.0);
+    final finalAmount = (originalTotalPrice - totalDiscountAmount - weekdayDiscountAmount) + (_isHomeService ? _homeServiceCharge : 0.0);
 
     // Use provided salonId, or staff's salonId, or default to "1" (as requested for tenantName)
     // The backend expects a Long, so we ensure it's a numeric-compatible value.
@@ -290,6 +296,7 @@ class BookingProvider extends ChangeNotifier {
       }).toList(),
       "totalPrice": originalTotalPrice,
       "discountAmount": totalDiscountAmount,
+      "weekdayDiscountAmount": weekdayDiscountAmount,
       "finalAmount": finalAmount,
       "offerId": _appliedOffer?.id.toString(),
       "offerName": _appliedOffer?.name,
@@ -302,6 +309,16 @@ class BookingProvider extends ChangeNotifier {
     };
 
     _lastBookingResponse = await _bookingService.bookAppointment(requestData);
+    
+    // The backend response might not include weekdayDiscountAmount or reflect it in finalAmount.
+    // Inject our correctly calculated pricing values so the booked screen displays them correctly.
+    if (_lastBookingResponse != null) {
+      _lastBookingResponse!['weekdayDiscountAmount'] = requestData['weekdayDiscountAmount'];
+      _lastBookingResponse!['finalAmount'] = requestData['finalAmount'];
+      _lastBookingResponse!['discountAmount'] = requestData['discountAmount'];
+      _lastBookingResponse!['totalPrice'] = requestData['totalPrice'];
+    }
+
     return _lastBookingResponse!;
   }
 

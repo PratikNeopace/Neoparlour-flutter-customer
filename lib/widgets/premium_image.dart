@@ -31,9 +31,10 @@ class PremiumImageWidget extends StatelessWidget {
       return _imageCache[url]!;
     }
     final dio = Dio();
+    final bool isPublicImage = url.contains('/api/images/');
     final options = Options(
       responseType: ResponseType.bytes,
-      headers: token != null && token.isNotEmpty
+      headers: (token != null && token.isNotEmpty && !isPublicImage)
           ? {'Authorization': 'Bearer $token'}
           : null,
     );
@@ -64,6 +65,10 @@ class PremiumImageWidget extends StatelessWidget {
     }
 
     final trimmedUrl = imageUrl!.trim();
+    String finalUrl = trimmedUrl;
+    if (finalUrl.startsWith('http://sb.neoparlour.com')) {
+      finalUrl = finalUrl.replaceFirst('http://', 'https://');
+    }
 
     // Check if it is a Base64 string
     if (!trimmedUrl.startsWith('http') && !trimmedUrl.startsWith('assets/')) {
@@ -91,6 +96,8 @@ class PremiumImageWidget extends StatelessWidget {
         );
       } catch (_) {
         // Fall through to network if decoding fails
+        final relativePath = trimmedUrl.startsWith('/') ? trimmedUrl.substring(1) : trimmedUrl;
+        finalUrl = 'https://sb.neoparlour.com/api/images/$relativePath';
       }
     }
 
@@ -100,7 +107,7 @@ class PremiumImageWidget extends StatelessWidget {
         final token = tokenSnapshot.data;
 
         return FutureBuilder<Uint8List>(
-          future: _fetchImageBytes(trimmedUrl, token),
+          future: _fetchImageBytes(finalUrl, token),
           builder: (context, bytesSnapshot) {
             if (bytesSnapshot.connectionState == ConnectionState.waiting) {
               return _buildShimmer();

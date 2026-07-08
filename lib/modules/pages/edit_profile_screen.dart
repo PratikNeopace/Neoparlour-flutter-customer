@@ -161,7 +161,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             if (profile != null && !_isEditing) {
               _nameController.text = profile.name;
               _emailController.text = profile.email;
-              _phoneController.text = profile.phone;
+              // Strip country code prefix (+91) so only the 10-digit number is shown
+              String phone = profile.phone;
+              if (phone.startsWith('+91')) {
+                phone = phone.substring(3);
+              } else if (phone.startsWith('91') && phone.length > 10) {
+                phone = phone.substring(2);
+              }
+              _phoneController.text = phone;
 
               if (profile.birthdate != null && profile.birthdate!.isNotEmpty) {
                 _dobController.text = profile.birthdate!.split('T')[0];
@@ -419,7 +426,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               final updatedData = profile?.toJson() ?? {};
                               updatedData['fullName'] = _nameController.text;
-                              updatedData['mobile'] = _phoneController.text;
+                              // Ensure we send the raw 10-digit number without country code
+                              String rawPhone = _phoneController.text.trim();
+                              if (rawPhone.startsWith('+91')) {
+                                rawPhone = rawPhone.substring(3);
+                              } else if (rawPhone.startsWith('91') && rawPhone.length > 10) {
+                                rawPhone = rawPhone.substring(2);
+                              }
+                              updatedData['mobile'] = rawPhone;
                               updatedData['email'] = _emailController.text;
 
                               if (_dobController.text.isNotEmpty) {
@@ -484,7 +498,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        SafeArea(top: false, child: const SizedBox(height: 40)),
                       ],
                     ),
                   ),

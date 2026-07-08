@@ -1,13 +1,17 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
 import '../../provider/customer/service_provider.dart';
 import '../../provider/customer/staff_provider.dart';
 import '../../provider/customer/booking_provider.dart';
 import '../../core/domain/models/neo_service.dart';
 import '../../widgets/custom_nav_bar.dart';
-import 'home_screen.dart';
 import 'select_date_time_screen.dart';
+
+import 'package:google_fonts/google_fonts.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -17,6 +21,86 @@ class ServicesScreen extends StatefulWidget {
 }
 
 class _ServicesScreenState extends State<ServicesScreen> {
+  String _selectedServiceCategory = "All";
+  final List<String> _serviceCategories = [
+    "All",
+    "Hair Services",
+    "Skin Care",
+    "Hair Removal",
+    "Nail Care",
+    "Makeup",
+    "Grooming",
+    "Spa & Massage",
+    "Hair Treatment"
+  ];
+
+  bool _serviceMatchesCategory(NeoService service, String category) {
+    if (category == "All") return true;
+    final serviceCat = service.category.toLowerCase().trim();
+    final filterCat = category.toLowerCase().trim();
+
+    if (filterCat == "hair services") {
+      return serviceCat.contains("cut") || serviceCat == "hair" || serviceCat == "hair services" || serviceCat == "hair cut";
+    } else if (filterCat == "skin care") {
+      return serviceCat == "skin care" || serviceCat == "facial" || serviceCat.contains("skin") || serviceCat.contains("facial") || serviceCat.contains("lighting");
+    } else if (filterCat == "hair removal") {
+      return serviceCat == "hair removal" || serviceCat.contains("removal");
+    } else if (filterCat == "nail care") {
+      return serviceCat == "nail care" || serviceCat.contains("nail");
+    } else if (filterCat == "makeup") {
+      return serviceCat == "makeup" || serviceCat.contains("makeup");
+    } else if (filterCat == "grooming") {
+      return serviceCat == "grooming" || serviceCat.contains("grooming");
+    } else if (filterCat == "spa & massage") {
+      return serviceCat == "spa & massage" || serviceCat.contains("massage");
+    } else if (filterCat == "hair treatment") {
+      return serviceCat == "hair treatment" || serviceCat.contains("treatment");
+    }
+
+    return serviceCat == filterCat || serviceCat.contains(filterCat) || filterCat.contains(serviceCat);
+  }
+
+  Widget _buildCategoryChips() {
+    return Container(
+      height: 38,
+      margin: const EdgeInsets.only(top: 22, bottom: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _serviceCategories.length,
+        itemBuilder: (context, index) {
+          final category = _serviceCategories[index];
+          final isSelected = category == _selectedServiceCategory;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedServiceCategory = category;
+                });
+              },
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0XFFFF0B01) : const Color(0XFFF5F5F7),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  category,
+                  style: GoogleFonts.poppins(
+                    color: isSelected ? Colors.white : const Color(0XFF767678),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
   @override
   void initState() {
     super.initState();
@@ -34,10 +118,21 @@ class _ServicesScreenState extends State<ServicesScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (route) => false,
-          );
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
         },
         backgroundColor: const Color(0xFFFF0B01),
         elevation: 5,
@@ -147,6 +242,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ],
                   ),
 
+                  _buildCategoryChips(),
+
                   // --- 2. GRID SECTION ---
                   if (provider.isLoading)
                     const Padding(
@@ -162,29 +259,52 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       padding: const EdgeInsets.only(top: 50),
                       child: Center(child: Text("Error: ${provider.error}")),
                     )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 20,
-                      ),
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: provider.services.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 15,
-                              mainAxisSpacing: 15,
-                              childAspectRatio: 1.0,
+                  else ...[
+                    (() {
+                      final filteredServices = provider.services
+                          .where((s) => _serviceMatchesCategory(s, _selectedServiceCategory))
+                          .toList();
+
+                      if (filteredServices.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 50, bottom: 50),
+                          child: Center(
+                            child: Text(
+                              "No services available in this category.",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                        itemBuilder: (context, index) {
-                          final service = provider.services[index];
-                          return _buildServiceCard(service);
-                        },
-                      ),
-                    ),
+                          ),
+                        );
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 20,
+                        ),
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredServices.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 15,
+                                mainAxisSpacing: 15,
+                                childAspectRatio: 1.0,
+                              ),
+                          itemBuilder: (context, index) {
+                            final service = filteredServices[index];
+                            return _buildServiceCard(service);
+                          },
+                        ),
+                      );
+                    })(),
+                  ],
                   const SizedBox(height: 100),
                 ],
               ),

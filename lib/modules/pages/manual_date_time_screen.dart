@@ -1,12 +1,14 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../provider/customer/booking_provider.dart';
 import '../../widgets/custom_nav_bar.dart';
 import 'review_confirm_screen.dart';
-import 'home_screen.dart';
 
 class ManualDateTimeScreen extends StatefulWidget {
   const ManualDateTimeScreen({super.key});
@@ -181,10 +183,23 @@ class _ManualDateTimeScreenState extends State<ManualDateTimeScreen> {
       bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "SERVICES"),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        ),
+        onPressed: () {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
+            },
         backgroundColor: const Color(0xFFFF0B01),
         elevation: 5,
         shape: const CircleBorder(),

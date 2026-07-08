@@ -5,12 +5,11 @@ import 'package:provider/provider.dart';
 import '../../provider/customer/service_provider.dart';
 import '../../provider/customer/staff_provider.dart';
 import '../../provider/customer/booking_provider.dart';
-import '../../widgets/custom_nav_bar.dart';
+import '../../provider/customer/auth_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'select_date_time_screen.dart';
 import 'review_confirm_screen.dart';
-import 'home_screen.dart';
 
 import '../../core/data/api_client.dart';
 import '../../core/domain/models/neo_service.dart';
@@ -30,6 +29,18 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
   final ScrollController _scrollController = ScrollController();
 
   List<NeoService> _services = [];
+  String _selectedServiceCategory = "All";
+  final List<String> _serviceCategories = [
+    "All",
+    "Hair Services",
+    "Skin Care",
+    "Hair Removal",
+    "Nail Care",
+    "Makeup",
+    "Grooming",
+    "Spa & Massage",
+    "Hair Treatment"
+  ];
   int _currentPage = 0;
   int _totalPages = 1;
   bool _isLoading = false;
@@ -66,15 +77,21 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     }
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final salonId = authProvider.salonId;
       final response = await ApiClient().dio.get(
-        'services/filter?page=$_currentPage&size=10&active=true',
+        'services/filter?page=$_currentPage&size=100&active=true${salonId != null ? "&salonId=$salonId" : ""}',
       );
       final data = response.data;
       
       final content = data['content'] as List;
       final pageInfo = data['page'];
       
-      final newServices = content.map((json) => NeoService.fromJson(json)).toList();
+      final newServices = content.where((json) => json['active'] == true).map((json) => NeoService.fromJson(json)).toList();
+      
+      if (mounted) {
+        context.read<ServiceProvider>().addServices(newServices);
+      }
       
       setState(() {
         _totalPages = pageInfo['totalPages'] ?? 1;
@@ -102,6 +119,8 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     }
   }
 
+
+
   Future<void> _fetchOffers({bool refresh = false}) async {
     if (refresh) {
       setState(() {
@@ -118,15 +137,17 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     }
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final salonId = authProvider.salonId;
       final response = await ApiClient().dio.get(
-        'offers/search?page=$_offersPage&size=10&active=true',
+        'offers/search?page=$_offersPage&size=10&active=true${salonId != null ? "&salonId=$salonId" : ""}',
       );
       final data = response.data;
       
       final content = data['content'] as List;
       final pageInfo = data['page'];
       
-      final newOffers = content.map((json) {
+      final newOffers = content.where((json) => json['active'] == true).map((json) {
         return Offer(
           id: json['id'] as int? ?? 0,
           name: json['name'] as String? ?? 'Unnamed Offer',
@@ -197,15 +218,17 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     }
 
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final salonId = authProvider.salonId;
       final response = await ApiClient().dio.get(
-        'packages/search?page=$_packagesPage&size=10&active=true',
+        'packages/search?page=$_packagesPage&size=10&active=true${salonId != null ? "&salonId=$salonId" : ""}',
       );
       final data = response.data;
       
       final content = data['content'] as List;
       final pageInfo = data['page'];
       
-      final newPackages = content.map((json) => PackageModel.fromJson(json)).toList();
+      final newPackages = content.where((json) => json['active'] == true).map((json) => PackageModel.fromJson(json)).toList();
       
       setState(() {
         _packagesTotalPages = pageInfo['totalPages'] ?? 1;
@@ -236,8 +259,31 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
   @override
   void initState() {
     super.initState();
+    // Always start with "Featured" preselected as requested unless a tab is specified
+    selectedCategory = "Featured";
+    
     if (widget.initialCategory != null) {
-      selectedCategory = widget.initialCategory!;
+      final input = widget.initialCategory!.toLowerCase().trim();
+      if (input == "offers") {
+        selectedCategory = "Offers";
+      } else if (input == "best selling packages" || input.contains("package")) {
+        selectedCategory = "Best Selling Packages";
+      } else {
+        selectedCategory = "Featured";
+        for (final cat in _serviceCategories) {
+          final catLower = cat.toLowerCase().trim();
+          if (catLower == input || 
+              (catLower == "hair removal" && input.contains("removal")) ||
+              (catLower == "hair treatment" && input.contains("treatment")) ||
+              (catLower == "hair services" && (input.contains("hair") || input.contains("cut")) && !input.contains("removal") && !input.contains("treatment")) ||
+              (catLower == "skin care" && (input.contains("skin") || input.contains("facial"))) ||
+              (catLower == "nail care" && input.contains("nail")) ||
+              (catLower == "spa & massage" && (input.contains("spa") || input.contains("massage")))) {
+            _selectedServiceCategory = cat;
+            break;
+          }
+        }
+      }
     }
     
     _scrollController.addListener(() {
@@ -261,19 +307,24 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     final bookingProvider = context.read<BookingProvider>();
     final staffProvider = context.read<StaffProvider>();
 
-    ///  IMPORTANT FIX — CLEAR OLD SELECTIONS
-    /// Only clear if NOT coming from staff-first flow
-    if (bookingProvider.preSelectedStaffId == null) {
+    if (bookingProvider.preSelectedStaffId == null && bookingProvider.selectedSlot == null) {
       serviceProvider.clearSelections();     // clear services
       bookingProvider.applyOffer(null);     // clear offer
       bookingProvider.selectSlot(null);     // clear slot
       staffProvider.selectStaff(null);      // clear staff
     }
 
-    /// Fetch fresh data
-    await _fetchServices(refresh: true);
-    await _fetchOffers(refresh: true);
-    await _fetchPackages(refresh: true);
+    // Fetch all active services for the current salon in background to populate cache
+    serviceProvider.fetchServices();
+
+    /// Fetch fresh data for the selected category
+    if (selectedCategory == "Featured") {
+      await _fetchServices(refresh: true);
+    } else if (selectedCategory == "Offers") {
+      await _fetchOffers(refresh: true);
+    } else if (selectedCategory == "Best Selling Packages") {
+      await _fetchPackages(refresh: true);
+    }
   });
   }
 
@@ -281,6 +332,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
   void _goNextIfServiceSelected() {
     final provider = context.read<ServiceProvider>();
     final staffProvider = context.read<StaffProvider>();
+    final bookingProvider = context.read<BookingProvider>();
 
     if (provider.selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();      FlushbarHelper.show(context, "Please select at least one service");
@@ -288,22 +340,32 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
       return;
     }
 
-    // Staff-first flow: staff was pre-selected → skip staff selection screen
-    final isStaffPreSelected =
-        staffProvider.hasUserSelected && staffProvider.selectedStaff != null;
+    final hasSlot = bookingProvider.selectedSlot != null;
 
-    if (isStaffPreSelected) {
-      // Staff already chosen, time slot already chosen → go straight to review
+    if (hasSlot) {
+      // Slot already chosen → go straight to review
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const ReviewConfirmScreen()),
       );
     } else {
-      // Normal flow: services chosen first → pick date/time next
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SelectDateTimeScreen()),
-      );
+      // Staff-first flow: staff was pre-selected → skip staff selection screen
+      final isStaffPreSelected =
+          staffProvider.hasUserSelected && staffProvider.selectedStaff != null;
+
+      if (isStaffPreSelected) {
+        // Staff already chosen, time slot already chosen → go straight to review
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ReviewConfirmScreen()),
+        );
+      } else {
+        // Normal flow: services chosen first → pick date/time next
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SelectDateTimeScreen()),
+        );
+      }
     }
   }
 
@@ -349,50 +411,12 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
                   _buildHeader(scale),
                   _buildCategories(scale),
                   _buildDivider(scale),
-                  if (selectedCategory == "Featured") _buildServiceList(scale),
+                  if (selectedCategory == "Featured") ...[
+                    _buildCategoryChips(scale),
+                    _buildServiceList(scale),
+                  ],
                   if (selectedCategory == "Offers") _buildOfferList(scale),
                   if (selectedCategory == "Best Selling Packages") _buildPackageList(scale),
-
-                  /// BIG NEXT BUTTON ABOVE NAVBAR
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                    26 * scale,
-                    30 * scale,
-                    25 * scale,
-                    20 * scale,
-                  ),
-                    child: Consumer<ServiceProvider>(
-                      builder: (context, provider, child) {
-                        final enabled = provider.selectedServices.isNotEmpty;
-                    
-                        return Center(
-                          child: GestureDetector(
-                            onTap: enabled ? _goNextIfServiceSelected : null,
-                            child: Container(
-                              height: 49 * scale,
-                              width: 324 * scale,
-                              decoration: BoxDecoration(
-                                color: enabled
-                                    ? const Color(0xFFFF0B01)
-                                    : Colors.grey,
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                "NEXT",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12 * scale,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  letterSpacing: 2.0,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
 
                   SizedBox(height: 160 * scale),
                 ],
@@ -400,50 +424,135 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
               
             ),
           ),
-             /// RIGHT CORNER NEXT ARROW 
-                  Positioned(
-                    bottom: 20,
-                    right: 20,
-                    child: Consumer<ServiceProvider>(
-                      builder: (context, provider, child) {
-                        final enabled = provider.selectedServices.isNotEmpty;
+          Positioned(
+            bottom: 20 + MediaQuery.of(context).padding.bottom,
+            left: 24,
+            right: 24,
+            child: Consumer<ServiceProvider>(
+              builder: (context, provider, child) {
+                final services = provider.selectedServices;
+                final enabled = services.isNotEmpty;
 
-                        return FloatingActionButton(
-                          heroTag: "serviceNextBtn",
-                          mini: true,
-                          onPressed: enabled ? _goNextIfServiceSelected : null,
-                          backgroundColor: enabled
-                              ? const Color(0xFFFF0B01)
-                              : Colors.grey,
-                          child: const Icon(
-                            Icons.arrow_forward,
-                            color: Colors.white,
-                          ),
-                        );
-                      },
-                    ),
+                final bookingProvider = context.read<BookingProvider>();
+                final staffProvider = context.read<StaffProvider>();
+                
+                final hasSlot = bookingProvider.selectedSlot != null;
+                final isStaffPreSelected = staffProvider.hasUserSelected && staffProvider.selectedStaff != null;
+                
+                String buttonText = "Select slot";
+                if (hasSlot) {
+                  buttonText = "Next";
+                } else if (isStaffPreSelected) {
+                  buttonText = "Select slot";
+                }
+
+                String leftTitleText = "";
+                String leftSubtitleText = "";
+
+                if (enabled) {
+                  leftTitleText = "${services.length} service${services.length > 1 ? 's' : ''}";
+                  leftSubtitleText = services.map((s) => s.name).join(', ');
+                } else if (isStaffPreSelected) {
+                  leftTitleText = "Staff selected";
+                  if (hasSlot) {
+                    leftSubtitleText = "${staffProvider.selectedStaff!.name} • ${bookingProvider.selectedSlot!.displayTime}";
+                  } else {
+                    leftSubtitleText = staffProvider.selectedStaff!.name;
+                  }
+                } else if (hasSlot) {
+                  leftTitleText = "Slot selected";
+                  leftSubtitleText = bookingProvider.selectedSlot!.displayTime;
+                } else {
+                  leftTitleText = "Select service";
+                  leftSubtitleText = "Please choose a service";
+                }
+
+                return Container(
+                  height: 68 * scale,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1F22),
+                    borderRadius: BorderRadius.circular(34 * scale),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 10 * scale),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  leftTitleText,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 14 * scale,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 4 * scale),
+                                const Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 2 * scale),
+                            Text(
+                              leftSubtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 11 * scale,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: enabled ? _goNextIfServiceSelected : () {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          FlushbarHelper.show(context, "Please select at least one service");
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24 * scale,
+                            vertical: 10 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: enabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(20 * scale),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            buttonText,
+                            style: GoogleFonts.poppins(
+                              color: enabled ? Colors.black : Colors.black.withValues(alpha: 0.5),
+                              fontSize: 12 * scale,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ],
-      ),
-      bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "SERVICES"),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildHomeFAB(context),
-    );
-  }
-
-  Widget _buildHomeFAB(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
-      },
-      backgroundColor: const Color(0xFFFF0B01),
-      elevation: 5,
-      shape: const CircleBorder(),
-      child: SvgPicture.asset(
-        "assets/Images/BottomNavigationBar/home_icon.svg",
       ),
     );
   }
@@ -561,8 +670,12 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
               setState(() {
                 selectedCategory = cat;
               });
-              if (cat == "Offers" && _offersList.isEmpty) {
+              if (cat == "Featured" && _services.isEmpty) {
+                _fetchServices(refresh: true);
+              } else if (cat == "Offers" && _offersList.isEmpty) {
                 _fetchOffers(refresh: true);
+              } else if (cat == "Best Selling Packages" && _packagesList.isEmpty) {
+                _fetchPackages(refresh: true);
               }
             },
             child: Container(
@@ -609,6 +722,74 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
     );
   }
 
+  bool _serviceMatchesCategory(NeoService service, String category) {
+    if (category == "All") return true;
+    final serviceCat = service.category.toLowerCase().trim();
+    final filterCat = category.toLowerCase().trim();
+
+    if (filterCat == "hair services") {
+      return serviceCat.contains("cut") || serviceCat == "hair" || serviceCat == "hair services" || serviceCat == "hair cut";
+    } else if (filterCat == "skin care") {
+      return serviceCat == "skin care" || serviceCat == "facial" || serviceCat.contains("skin") || serviceCat.contains("facial") || serviceCat.contains("lighting");
+    } else if (filterCat == "hair removal") {
+      return serviceCat == "hair removal" || serviceCat.contains("removal");
+    } else if (filterCat == "nail care") {
+      return serviceCat == "nail care" || serviceCat.contains("nail");
+    } else if (filterCat == "makeup") {
+      return serviceCat == "makeup" || serviceCat.contains("makeup");
+    } else if (filterCat == "grooming") {
+      return serviceCat == "grooming" || serviceCat.contains("grooming");
+    } else if (filterCat == "spa & massage") {
+      return serviceCat == "spa & massage" || serviceCat.contains("massage");
+    } else if (filterCat == "hair treatment") {
+      return serviceCat == "hair treatment" || serviceCat.contains("treatment");
+    }
+
+    return serviceCat == filterCat || serviceCat.contains(filterCat) || filterCat.contains(serviceCat);
+  }
+
+  Widget _buildCategoryChips(double scale) {
+    return Container(
+      height: 38 * scale,
+      margin: EdgeInsets.only(top: 16 * scale, bottom: 8 * scale),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 24 * scale),
+        itemCount: _serviceCategories.length,
+        itemBuilder: (context, index) {
+          final category = _serviceCategories[index];
+          final isSelected = category == _selectedServiceCategory;
+          return Padding(
+            padding: EdgeInsets.only(right: 12.0 * scale),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedServiceCategory = category;
+                });
+              },
+              child: Container(
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: 24 * scale),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0XFFFF0B01) : const Color(0XFFF5F5F7),
+                  borderRadius: BorderRadius.circular(100 * scale),
+                ),
+                child: Text(
+                  category,
+                  style: GoogleFonts.poppins(
+                    color: isSelected ? Colors.white : const Color(0XFF767678),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13 * scale,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildServiceList(double scale) {
     return Consumer<ServiceProvider>(
       builder: (context, provider, child) {
@@ -621,7 +802,25 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
           );
         }
 
-        final filteredServices = _services;
+        final filteredServices = _services
+            .where((s) => _serviceMatchesCategory(s, _selectedServiceCategory))
+            .toList();
+
+        if (filteredServices.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60.0),
+            child: Center(
+              child: Text(
+                "No services available in this category.",
+                style: GoogleFonts.poppins(
+                  fontSize: 14 * scale,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        }
 
         return Column(
           children: [
@@ -695,9 +894,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
                           final bookingProvider = context.read<BookingProvider>();
                           bookingProvider.setSelectedPackage(null);
                           
-                          // Only clear state if we are NOT in the staff-pre-selected flow.
-                          // In staff-first flow, we must preserve the already-chosen staff and slot.
-                          if (bookingProvider.preSelectedStaffId == null) {
+                          if (bookingProvider.preSelectedStaffId == null && bookingProvider.selectedSlot == null) {
                             bookingProvider.selectSlot(null);
                             context.read<StaffProvider>().selectStaff(null);
                           }
@@ -770,6 +967,22 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
 
         final offers = _offersList;
 
+        if (offers.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60.0),
+            child: Center(
+              child: Text(
+                "No active Offers today",
+                style: GoogleFonts.poppins(
+                  fontSize: 14 * scale,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        }
+
         return Column(
           children: [
             ListView.separated(
@@ -797,7 +1010,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
                   bookingProvider.applyOffer(null);
                   serviceProvider.clearSelections();
                 } else {
-                  if (bookingProvider.preSelectedStaffId == null) {
+                  if (bookingProvider.preSelectedStaffId == null && bookingProvider.selectedSlot == null) {
                     context.read<StaffProvider>().selectStaff(null);
                     bookingProvider.selectSlot(null);
                   }
@@ -809,55 +1022,174 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
               },
               child: Padding(
                 padding: EdgeInsets.fromLTRB(24 * scale, 8 * scale, 24 * scale, 8 * scale),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            offer.name,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16 * scale,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Text(
-                            offer.description,
-                            style: GoogleFonts.poppins(
-                              fontSize: 10 * scale,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF8D8D8D),
-                            ),
-                          ),
-                          if (offer.applicableServices.isNotEmpty)
-                            Padding(
-                              padding: EdgeInsets.only(top: 4 * scale),
-                              child: Text(
-                                "Services: ${offer.applicableServices.map((s) => s.name).join(", ")}",
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                offer.name,
                                 style: GoogleFonts.poppins(
-                                  fontSize: 10 * scale,
+                                  fontSize: 16 * scale,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.black54,
+                                  color: Colors.black,
                                 ),
                               ),
-                            ),
-                          SizedBox(height: 8 * scale),
-                          Text(
-                            offer.discountType == "PERCENTAGE" 
-                              ? "${offer.discountValue.toInt()}% OFF"
-                              : "₹ ${offer.discountValue.toInt()} OFF",
-                            style: GoogleFonts.poppins(
-                              fontSize: 18 * scale,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0XFFFF0B01),
-                            ),
+                              Text(
+                                offer.description,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10 * scale,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFF8D8D8D),
+                                ),
+                              ),
+                              if (offer.applicableServices.isNotEmpty && !isSelected)
+                                Padding(
+                                  padding: EdgeInsets.only(top: 4 * scale),
+                                  child: Text(
+                                    "Services: ${offer.applicableServices.map((s) => s.name).join(", ")}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10 * scale,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(height: 8 * scale),
+                              Text(
+                                offer.discountType == "PERCENTAGE" 
+                                  ? "${offer.discountValue.toInt()}% OFF"
+                                  : "₹ ${offer.discountValue.toInt()} OFF",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18 * scale,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0XFFFF0B01),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        _buildSelectCircle(isSelected, scale),
+                      ],
                     ),
-                    _buildSelectCircle(isSelected, scale),
+                    if (isSelected && offer.applicableServices.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Price Breakdown:",
+                              style: GoogleFonts.poppins(
+                                fontSize: 11 * scale,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            ...offer.applicableServices.map((s) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      s.name,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11 * scale,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      "₹${s.price.toInt()}",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11 * scale,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            const Divider(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Original Total:",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11 * scale,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                Text(
+                                  "₹${offer.applicableServices.fold(0.0, (sum, s) => sum + s.price).toInt()}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11 * scale,
+                                    color: Colors.black54,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Discount Saved:",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11 * scale,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                Text(
+                                  "- ₹${(offer.discountType == "PERCENTAGE" ? (offer.applicableServices.fold(0.0, (sum, s) => sum + s.price) * (offer.discountValue / 100)) : offer.discountValue).toInt()}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11 * scale,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Payable Amount:",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11 * scale,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  "₹${(offer.applicableServices.fold(0.0, (sum, s) => sum + s.price) - (offer.discountType == "PERCENTAGE" ? (offer.applicableServices.fold(0.0, (sum, s) => sum + s.price) * (offer.discountValue / 100)) : offer.discountValue)).toInt()}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12 * scale,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0XFFFF0B01),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -891,6 +1223,22 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
 
         final packages = _packagesList;
 
+        if (packages.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 60.0),
+            child: Center(
+              child: Text(
+                "No active Packages today",
+                style: GoogleFonts.poppins(
+                  fontSize: 14 * scale,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        }
+
         return Column(
           children: [
             ListView.separated(
@@ -922,7 +1270,7 @@ class _SelectServicesScreenState extends State<SelectServicesScreen> {
                       serviceProvider.clearSelections();
                       bookingProvider.setSelectedPackage(null);
                     } else {
-                      if (bookingProvider.preSelectedStaffId == null) {
+                      if (bookingProvider.preSelectedStaffId == null && bookingProvider.selectedSlot == null) {
                         context.read<StaffProvider>().selectStaff(null);
                         bookingProvider.selectSlot(null);
                       }

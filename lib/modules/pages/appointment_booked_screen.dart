@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../provider/customer/auth_provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AppointmentBookedScreen extends StatelessWidget {
   final Map<String, dynamic> bookingData;
@@ -34,20 +35,7 @@ class AppointmentBookedScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Back button
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.5),
-                    child: const Icon(Icons.arrow_back_ios_new, size: 18, color: Colors.black),
-                  ),
-                ),
-              ),
-            ),
+            // Removed back button
 
             const SizedBox(height: 40),
 
@@ -113,6 +101,18 @@ class AppointmentBookedScreen extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0XFFFF0B01),
+                ),
+              ),
+            ],
+
+            if (bookingData['weekdayDiscountAmount'] != null && (bookingData['weekdayDiscountAmount'] as num) > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                "You've saved ₹${(bookingData['weekdayDiscountAmount'] as num).toInt()} with slot discount",
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E7D32),
                 ),
               ),
             ],
@@ -192,12 +192,25 @@ class AppointmentBookedScreen extends StatelessWidget {
             const SizedBox(height: 34),
 
             TextButton(
-              onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              onPressed: () {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
                 (route) => false,
-              ),
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
+            },
               child: const Text(
-                "Go to Home",
+                "Explore More Services",
                 style: TextStyle(
                     color: Color(0xFFFF0B01),
                     fontSize: 16,
@@ -207,7 +220,8 @@ class AppointmentBookedScreen extends StatelessWidget {
                     decorationThickness: 1.5
                 ),
               ),
-            )
+            ),
+            SafeArea(top: false, child: const SizedBox(height: 10)),
           ],
         ),
       ),

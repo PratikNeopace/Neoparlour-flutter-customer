@@ -174,40 +174,43 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   Widget _buildBottomNavBar() {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 30),
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, spreadRadius: 1)],
+      child: SafeArea(
+        top: false,
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 30),
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, spreadRadius: 1)],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _navItem(Icons.explore_outlined, "SERVICES"),
+                  _navItem(Icons.person_search_outlined, "EXPERT"),
+                  const SizedBox(width: 40), // Space for FAB
+                  _navItem(Icons.notifications_none, "NOTIFICATION"),
+                  _navItem(Icons.person_outline, "PROFILE"),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.explore_outlined, "SERVICES"),
-                _navItem(Icons.person_search_outlined, "EXPERT"),
-                const SizedBox(width: 40), // Space for FAB
-                _navItem(Icons.notifications_none, "NOTIFICATION"),
-                _navItem(Icons.person_outline, "PROFILE"),
-              ],
+            // Central Red FAB
+            Container(
+              height: 65,
+              width: 65,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.redAccent, blurRadius: 8, offset: Offset(0, 4))],
+              ),
+              child: const Icon(Icons.home, color: Colors.white, size: 30),
             ),
-          ),
-          // Central Red FAB
-          Container(
-            height: 65,
-            width: 65,
-            decoration: const BoxDecoration(
-              color: Colors.red,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.redAccent, blurRadius: 8, offset: Offset(0, 4))],
-            ),
-            child: const Icon(Icons.home, color: Colors.white, size: 30),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

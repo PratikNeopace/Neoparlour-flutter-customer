@@ -1,11 +1,12 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
 import '../../provider/customer/booking_provider.dart';
-import '../../provider/customer/auth_provider.dart';
 import '../../core/domain/models/appointment.dart';
 import '../../widgets/custom_nav_bar.dart';
-import 'home_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -34,68 +35,89 @@ class _NotificationScreenState extends State<NotificationScreen> {
       bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "NOTIFICATION"),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        ),
+        onPressed: () {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
+            },
         backgroundColor: const Color(0XFFFF0B01),
         elevation: 4,
         shape: const CircleBorder(),
         child: SvgPicture.asset("assets/Images/BottomNavigationBar/home_icon.svg"),
       ),
-      body: Column(
-        children: [
-          // 1. Header Section
-          _buildHeader(context),
+      body: Consumer2<BookingProvider, AuthProvider>(
+        builder: (context, booking, auth, child) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              if (auth.userPhone != null) {
+                await booking.fetchUserAppointments(auth.userPhone!);
+              }
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  // 1. Header Section
+                  _buildHeader(context),
 
-          // 2. Notification List Section
-          Expanded(
-            child: Consumer2<BookingProvider, AuthProvider>(
-              builder: (context, booking, auth, child) {
-                if (booking.isLoadingAppointments) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0XFFFF0B01)));
-                }
-
-                if (auth.userPhone == null) {
-                  return const Center(child: Text("Please login to see notifications."));
-                }
-
-                if (booking.userAppointments.isEmpty) {
-                  return const Center(child: Text("No notifications yet."));
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    if (auth.userPhone != null) {
-                      await booking.fetchUserAppointments(auth.userPhone!);
-                    }
-                  },
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 30, 20, 120),
-                    itemCount: booking.userAppointments.length,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final appointment = booking.userAppointments[index];
-                      
-                      // Alternating colors logic
-                      // Even: Red sidebar, Grey background
-                      // Odd: Green sidebar, Light Green background
-                      final bool isEven = index % 2 == 0;
-                      final Color sideColor = isEven ? const Color(0XFFFF0B01) : const Color(0XFF43A047);
-                      final Color bgColor = isEven ? const Color(0XFFE2E2E2) : const Color(0XFFE5FFE7);
-  
-                      return _notificationItem(
-                        appointment: appointment,
-                        sideColor: sideColor,
-                        bgColor: bgColor,
-                      );
-                    },
-                  ),
-                );
-              },
+                  // 2. Notification List Section
+                  if (booking.isLoadingAppointments)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 80),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0XFFFF0B01)),
+                      ),
+                    )
+                  else if (auth.userPhone == null)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 80),
+                      child: Center(
+                        child: Text("Please login to see notifications."),
+                      ),
+                    )
+                  else if (booking.userAppointments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 80),
+                      child: Center(
+                        child: Text("No notifications yet."),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 30, 20, 120),
+                      itemCount: booking.userAppointments.length,
+                      itemBuilder: (context, index) {
+                        final appointment = booking.userAppointments[index];
+                        final bool isEven = index % 2 == 0;
+                        final Color sideColor = isEven ? const Color(0XFFFF0B01) : const Color(0XFF43A047);
+                        final Color bgColor = isEven ? const Color(0XFFE2E2E2) : const Color(0XFFE5FFE7);
+    
+                        return _notificationItem(
+                          appointment: appointment,
+                          sideColor: sideColor,
+                          bgColor: bgColor,
+                        );
+                      },
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

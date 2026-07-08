@@ -1,0 +1,9 @@
+TOKEN="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIrOTE3NTE3MzQ5NzczIiwiY3VzdG9tZXJJZCI6MywicGhvbmUiOiIrOTE3NTE3MzQ5NzczIiwibmFtZSI6IkN1c3RvbWVyIiwidHlwZSI6IkNVU1RPTUVSIiwicm9sZSI6IkNVU1RPTUVSIiwidGVuYW50Ijo0LCJzYWxvbklkIjo0LCJpYXQiOjE3ODMwNjUyODAsImV4cCI6MTgxNDYwMTI4MCwic2Fsb25OYW1lIjoiQXZpc2hrYXIifQ.VNgTIfCqWdgYeoYCQcXYt5MMvntZtPeAhELPkZq5Oao"
+
+curl -s -I -H "Authorization: Bearer $TOKEN" "https://sb.neoparlour.com/api/users/5bb5340c-c39b-41c5-852c-c08d1a7a1a29.jpg"
+echo -e "\n---"
+curl -s -I -H "Authorization: Bearer $TOKEN" "https://sb.neoparlour.com/api/image/users/5bb5340c-c39b-41c5-852c-c08d1a7a1a29.jpg"
+echo -e "\n---"
+curl -s -I -H "Authorization: Bearer $TOKEN" "https://sb.neoparlour.com/api/files/users/5bb5340c-c39b-41c5-852c-c08d1a7a1a29.jpg"
+echo -e "\n---"
+curl -s -I -H "Authorization: Bearer $TOKEN" "https://sb.neoparlour.com/users/5bb5340c-c39b-41c5-852c-c08d1a7a1a29.jpg"

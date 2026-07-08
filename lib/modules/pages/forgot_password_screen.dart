@@ -314,7 +314,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 100),
+            SafeArea(top: false, child: const SizedBox(height: 100)),
           ],
         ),
       ),

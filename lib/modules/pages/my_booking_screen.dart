@@ -7,9 +7,10 @@ import '../../provider/customer/booking_provider.dart';
 import '../../provider/customer/auth_provider.dart';
 import '../../core/domain/models/appointment.dart';
 import '../../core/utils/error_handler.dart';
-import '../../widgets/custom_nav_bar.dart';
-import 'home_screen.dart';
 import 'feedback_screen.dart';
+import '../../provider/customer/staff_provider.dart';
+import '../../core/domain/models/staff.dart';
+import 'select_date_time_screen.dart';
 
 class MyBookingScreen extends StatefulWidget {
   const MyBookingScreen({super.key});
@@ -115,23 +116,6 @@ class _MyBookingScreenState extends State<MyBookingScreen> with SingleTickerProv
               ),
             ),
           ],
-        ),
-        bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "SERVICES"),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
-            );
-          },
-          backgroundColor: const Color(0XFFFF0B01),
-          elevation: 4,
-          shape: const CircleBorder(),
-          child: SvgPicture.asset(
-            "assets/Images/BottomNavigationBar/home_icon.svg",
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          ),
         ),
       ),
     );
@@ -501,73 +485,33 @@ class BookingCard extends StatelessWidget {
   }
 
   void _handleReschedule(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: appointment.appointmentAt,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 90)),
-    );
+    final staffProvider = parentContext.read<StaffProvider>();
 
-    if (pickedDate != null && context.mounted) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(appointment.appointmentAt),
-      );
-
-      if (pickedTime != null && context.mounted) {
-        final newDateTime = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          pickedTime.hour,
-          pickedTime.minute,
-        );
-
-        // Now ask for reason
-        final TextEditingController reasonController = TextEditingController();
-        showDialog(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text("Reschedule Reason"),
-            content: TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(hintText: "Why are you rescheduling?"),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("BACK")),
-              TextButton(
-                onPressed: () async {
-                  final reason = reasonController.text.trim();
-                  if (reason.isEmpty) return;
-                  
-                  Navigator.pop(dialogContext);
-                  final provider = parentContext.read<BookingProvider>();
-                  final auth = parentContext.read<AuthProvider>();
-                  
-                  try {
-                    await provider.rescheduleAppointment(
-                      appointment.id,
-                      newDateTime,
-                      reason,
-                      auth.userPhone!,
-                    );
-                    if (parentContext.mounted) {
-                      FlushbarHelper.show(parentContext, "Appointment rescheduled successfully", isSuccess: true);
-                    }
-                  } catch (e) {
-                    final msg = ErrorHandler.getErrorMessage(e);
-                    if (parentContext.mounted) {
-                      FlushbarHelper.show(parentContext, msg);
-                    }
-                  }
-                },
-                child: const Text("CONFIRM"),
-              ),
-            ],
-          ),
-        );
-      }
+    if (appointment.staffId != null) {
+      staffProvider.selectStaff(Staff(
+        id: appointment.staffId!,
+        name: appointment.staffName,
+        phone: '',
+        email: '',
+        staffStatus: '',
+        salonId: 1,
+        salonName: '',
+        createdAt: DateTime.now(),
+        active: true,
+      ));
+    } else {
+      staffProvider.clearSelection();
     }
+
+    Navigator.push(
+      parentContext,
+      MaterialPageRoute(
+        builder: (context) => SelectDateTimeScreen(
+          isReschedule: true,
+          rescheduleAppointment: appointment,
+        ),
+      ),
+    );
   }
 
   void _handleCancel(BuildContext context) {

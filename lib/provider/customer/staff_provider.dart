@@ -27,6 +27,12 @@ class StaffProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelection() {
+    _selectedStaff = null;
+    _hasUserSelected = false;
+    notifyListeners();
+  }
+
   Future<void> fetchStaff() async {
     _isLoading = true;
     _error = null;
@@ -44,8 +50,8 @@ class StaffProvider extends ChangeNotifier {
 
   final Map<String, List<Staff>> _staffCache = {};
 
-  Future<void> fetchAvailableStaff(String selectedTime, int durationMinutes, {bool forceRefresh = false}) async {
-    final cacheKey = '${selectedTime}_$durationMinutes';
+  Future<void> fetchAvailableStaff(String selectedTime, int durationMinutes, {int? salonId, bool forceRefresh = false}) async {
+    final cacheKey = '${selectedTime}_${durationMinutes}_$salonId';
     if (!forceRefresh && _staffCache.containsKey(cacheKey)) {
       _availableStaffList = _staffCache[cacheKey]!;
       _selectedStaff = null;
@@ -61,7 +67,7 @@ class StaffProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _availableStaffList = await _staffDataService.getAvailableStaff(selectedTime, durationMinutes);
+      _availableStaffList = await _staffDataService.getAvailableStaff(selectedTime, durationMinutes, salonId: salonId);
       _staffCache[cacheKey] = _availableStaffList;
     } catch (e) {
       _error = ErrorHandler.getErrorMessage(e);

@@ -41,14 +41,18 @@ class StaffDataService {
     }
   }
 
-  Future<List<Staff>> getAvailableStaff(String selectedTime, int durationMinutes) async {
+  Future<List<Staff>> getAvailableStaff(String selectedTime, int durationMinutes, {int? salonId}) async {
     try {
+      final queryParams = {
+        'selectedTime': selectedTime,
+        'durationMinutes': durationMinutes,
+      };
+      if (salonId != null) {
+        queryParams['salonId'] = salonId;
+      }
       final response = await _apiClient.dio.get(
-        'appointments/available-staff',
-        queryParameters: {
-          'selectedTime': selectedTime,
-          'durationMinutes': durationMinutes,
-        },
+        'appointments/public/available-staff',
+        queryParameters: queryParams,
       );
 
       if (response.data is List) {

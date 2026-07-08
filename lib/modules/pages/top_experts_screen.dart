@@ -1,8 +1,10 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:neo_parlour/widgets/custom_nav_bar.dart';
-import 'package:provider/provider.dart';
-import 'home_screen.dart';
 import 'select_date_time_screen.dart';
 import '../../provider/customer/staff_provider.dart';
 import '../../provider/customer/booking_provider.dart';
@@ -33,10 +35,23 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
       bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "EXPERT"),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        ),
+        onPressed: () {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
+            },
         backgroundColor: const Color(0XFFFF0B01),
         elevation: 4,
         shape: const CircleBorder(),
@@ -221,6 +236,7 @@ class _TopExpertsScreenState extends State<TopExpertsScreen> {
             Positioned.fill(
               child: StaffAvatar(
                 imageAsBase64: staff.imageAsBase64,
+                imageUrl: staff.imageUrl,
                 gender: staff.gender,
                 borderRadius: 20,
                 width: double.infinity,

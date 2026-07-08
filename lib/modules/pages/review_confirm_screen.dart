@@ -7,10 +7,8 @@ import '../../provider/customer/booking_provider.dart';
 import '../../provider/customer/staff_provider.dart';
 import '../../provider/customer/service_provider.dart';
 import '../../provider/customer/auth_provider.dart';
-import '../../widgets/custom_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/utils/error_handler.dart';
-import 'home_screen.dart';
 import 'appointment_booked_screen.dart';
 
 class ReviewConfirmScreen extends StatefulWidget {
@@ -126,9 +124,18 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
         discountAmount = booking.appliedOffer!.discountValue;
       }
     }
+
+    // Weekday/slot discount from selected time slot
+    double weekdayDiscountAmount = 0.0;
+    if (booking.selectedSlot != null &&
+        booking.selectedSlot!.discountPercentage != null &&
+        booking.selectedSlot!.discountPercentage! > 0) {
+      weekdayDiscountAmount = subtotal * (booking.selectedSlot!.discountPercentage! / 100);
+    }
+
     final subtotalAfterDiscount = basePrice - discountAmount;
     final homeCharge = booking.isHomeService ? booking.homeServiceCharge : 0.0;
-    final finalTotal = subtotalAfterDiscount + homeCharge;
+    final finalTotal = subtotalAfterDiscount - weekdayDiscountAmount + homeCharge;
 
     final primaryService = services.isNotEmpty ? services.first : null;
     final dateFormatted = DateFormat(
@@ -315,6 +322,29 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
                       ],
                     ),
                   ],
+                  if (weekdayDiscountAmount > 0) ...[
+                    SizedBox(height: 8 * scale),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Slot Discount (${booking.selectedSlot?.discountMessage ?? '${booking.selectedSlot?.discountPercentage?.toInt()}% Off'})",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14 * scale,
+                            color: const Color(0xFF2E7D32),
+                          ),
+                        ),
+                        Text(
+                          "- ₹ ${weekdayDiscountAmount.toInt()}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14 * scale,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (booking.isHomeService &&
                       booking.homeServiceCharge > 0) ...[
                     SizedBox(height: 8 * scale),
@@ -487,31 +517,13 @@ class _ReviewConfirmScreenState extends State<ReviewConfirmScreen> {
                   ),
                 ],
               ),
-            ),
+                    ),
           ],
         ),
       ),
-      ),
-      bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "SERVICES"),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildHomeFAB(context),
-    );
-  }
-
-  Widget _buildHomeFAB(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      ),
-      backgroundColor: const Color(0xFFFF0B01),
-      elevation: 5,
-      shape: const CircleBorder(),
-      child: SvgPicture.asset(
-        "assets/Images/BottomNavigationBar/home_icon.svg",
-      ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildHeader(double scale) {
     return Stack(

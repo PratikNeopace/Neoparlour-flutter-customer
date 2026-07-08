@@ -22,11 +22,51 @@ class AuthService {
     }
   }
 
+  Future<LoginResponse> loginWithOtp(String mobile, String otp, {String? fcmToken}) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'customer/login-with-otp',
+        data: {
+          'mobile': mobile,
+          'otp': otp,
+          'fcmToken': ?fcmToken,
+        },
+        options: Options(extra: {'skipToken': true}),
+      );
+      if (response.data is Map && response.data['success'] == false) {
+        throw Exception(response.data['message'] ?? 'OTP verification failed');
+      }
+      return LoginResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<LoginResponse> switchCustomerToSalon(SwitchTenantRequest request) async {
     try {
       final response = await _apiClient.dio.post(
         'customer/switch-tenant',
         data: request.toJson(),
+      );
+      return LoginResponse.fromJson(response.data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<LoginResponse> switchCustomerToSalonById({
+    required String token,
+    required int salonId,
+    required String salonName,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'customer/switch-salon',
+        data: {
+          'token': token,
+          'salonId': salonId,
+          'salonName': salonName,
+        },
       );
       return LoginResponse.fromJson(response.data);
     } catch (e) {

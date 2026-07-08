@@ -4,11 +4,11 @@ import 'package:provider/provider.dart';
 import '../../provider/customer/staff_provider.dart';
 import '../../provider/customer/service_provider.dart';
 import '../../provider/customer/booking_provider.dart';
+import '../../provider/customer/auth_provider.dart';
 import '../../core/domain/models/staff.dart';
-import '../../widgets/custom_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'review_confirm_screen.dart';
-import 'home_screen.dart';
+import 'select_services_screen.dart';
 import '../../widgets/staff_image_widgets.dart';
 
 ///  ADDED — responsive font helper (fixes your error)
@@ -47,6 +47,7 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
     final bookingProvider = context.read<BookingProvider>();
     final serviceProvider = context.read<ServiceProvider>();
     final staffProvider = context.read<StaffProvider>();
+    final authProvider = context.read<AuthProvider>();
 
     final selectedSlot = bookingProvider.selectedSlot;
     final manualTime = bookingProvider.manualTime;
@@ -56,23 +57,34 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
       0,
       (sum, s) => sum + s.duration,
     );
+    final duration = totalDuration > 0 ? totalDuration : 30;
 
     DateTime appointmentTime = selectedSlot?.startTime ?? manualTime;
     String selectedTime = appointmentTime.toUtc().toIso8601String();
 
     await staffProvider.fetchAvailableStaff(
       selectedTime,
-      totalDuration,
+      duration,
+      salonId: authProvider.salonId,
       forceRefresh: forceRefresh,
     );
   }
 
   void _goNext(BuildContext context, StaffProvider provider) {
     if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ReviewConfirmScreen()),
-    );
+    final serviceProvider = context.read<ServiceProvider>();
+
+    if (serviceProvider.selectedServices.isEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SelectServicesScreen()),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ReviewConfirmScreen()),
+      );
+    }
   }
 
   @override
@@ -102,99 +114,137 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
 
                   // SizedBox(height: 80 * scale),
 
-                  /// BIG NEXT button above Home FAB
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      26 * scale,
-                      30 * scale, 
-                      25 * scale,
-                      40 * scale,
-                    ),
-                    child: Consumer<StaffProvider>(
-                      builder: (context, provider, _) {
-                        final isEnabled = provider.hasUserSelected;
-
-                        return Center(
-                          child: GestureDetector(
-                            onTap: isEnabled
-                                ? () => _goNext(context, provider)
-                                : null,
-                            child: Container(
-                              height: 49 * scale,
-                              width: 324 * scale,
-                              decoration: BoxDecoration(
-                                color: isEnabled
-                                    ? const Color(0xFFFF0B01)
-                                    : Colors.grey.shade400,
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                "NEXT",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12 * scale,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
                   SizedBox(height: bottomSafeSpace),
                 ],
               ),
             ),
           ),
 
-          ///  Bottom-right next arrow
           Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 80,
-            right: 18,
+            bottom: 20 + MediaQuery.of(context).padding.bottom,
+            left: 24,
+            right: 24,
             child: Consumer<StaffProvider>(
               builder: (context, provider, _) {
                 final isEnabled = provider.hasUserSelected;
+                final serviceProvider = context.read<ServiceProvider>();
+                final bookingProvider = context.read<BookingProvider>();
+                
+                final services = serviceProvider.selectedServices;
+                final hasServices = services.isNotEmpty;
+                final hasSlot = bookingProvider.selectedSlot != null;
+                
+                String leftTitleText = "";
+                String leftSubtitleText = "";
+                String buttonText = "Next";
+                
+                if (hasServices) {
+                  leftTitleText = "${services.length} service${services.length > 1 ? 's' : ''}";
+                  if (isEnabled) {
+                    leftSubtitleText = "${services.map((s) => s.name).join(', ')} • ${provider.selectedStaff?.name ?? 'No Preference'}";
+                  } else {
+                    leftSubtitleText = services.map((s) => s.name).join(', ');
+                  }
+                  buttonText = hasSlot ? "Next" : "Select slot";
+                } else if (hasSlot) {
+                  leftTitleText = "Slot selected";
+                  if (isEnabled) {
+                    leftSubtitleText = "${bookingProvider.selectedSlot!.displayTime} • ${provider.selectedStaff?.name ?? 'No Preference'}";
+                  } else {
+                    leftSubtitleText = bookingProvider.selectedSlot!.displayTime;
+                  }
+                  buttonText = "Next";
+                } else {
+                  // Fallback if somehow nothing is set
+                  leftTitleText = "Select Staff";
+                  leftSubtitleText = "Please select a professional";
+                  buttonText = "Next";
+                }
 
-                return FloatingActionButton(
-                  heroTag: "nextArrowBtn",
-                  mini: true,
-                  backgroundColor: isEnabled
-                      ? const Color(0xFFFF0B01)
-                      : Colors.grey.shade400,
-                  onPressed: isEnabled
-                      ? () => _goNext(context, provider)
-                      : null,
-                  child: const Icon(Icons.arrow_forward, color: Colors.white),
+                return Container(
+                  height: 68 * scale,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1F22),
+                    borderRadius: BorderRadius.circular(34 * scale),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 10 * scale),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  leftTitleText,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 14 * scale,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 4 * scale),
+                                const Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 2 * scale),
+                            Text(
+                              leftSubtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 11 * scale,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: isEnabled ? () => _goNext(context, provider) : null,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24 * scale,
+                            vertical: 10 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isEnabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(20 * scale),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            buttonText,
+                            style: GoogleFonts.poppins(
+                              color: isEnabled ? Colors.black : Colors.black.withValues(alpha: 0.5),
+                              fontSize: 12 * scale,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
           ),
         ],
       ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildHomeFAB(context),
-      bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "EXPERT"),
-    );
-  }
-
-  Widget _buildHomeFAB(BuildContext context) {
-    return FloatingActionButton(
-      backgroundColor: const Color(0xFFFF0B01),
-      elevation: 5,
-      shape: const CircleBorder(),
-      child: SvgPicture.asset(
-        "assets/Images/BottomNavigationBar/home_icon.svg",
-      ),
-      onPressed: () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (route) => false,
-        );
-      },
     );
   }
 

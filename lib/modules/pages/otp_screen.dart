@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/utils/flushbar_helper.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +8,16 @@ import '../../provider/customer/auth_provider.dart';
 import 'tnc_acceptance_screen.dart';
 
 class OTPScreen extends StatefulWidget {
-  const OTPScreen({super.key});
+  final String mobileNumber;
+  final String countryCode;
+  final bool isTncAccepted;
+
+  const OTPScreen({
+    super.key,
+    required this.mobileNumber,
+    required this.countryCode,
+    this.isTncAccepted = false,
+  });
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
@@ -17,8 +27,56 @@ class _OTPScreenState extends State<OTPScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
+  Timer? _timer;
+  int _secondsRemaining = 30;
+  bool _canResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    setState(() {
+      _secondsRemaining = 30;
+      _canResend = false;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining == 0) {
+        setState(() {
+          _canResend = true;
+          _timer?.cancel();
+        });
+      } else {
+        setState(() {
+          _secondsRemaining--;
+        });
+      }
+    });
+  }
+
+  void _resendOtp() async {
+    if (!_canResend) return;
+
+    final auth = context.read<AuthProvider>();
+    final success = await auth.sendOtp(widget.mobileNumber);
+    if (success) {
+      if (mounted) {
+        FlushbarHelper.show(context, "OTP resent successfully");
+        _startTimer();
+      }
+    } else {
+      if (mounted) {
+        FlushbarHelper.show(context, auth.errorMessage ?? "Failed to resend OTP");
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _timer?.cancel();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -92,17 +150,12 @@ class _OTPScreenState extends State<OTPScreen> {
                       Container(height: 3, width: 70, color: Colors.redAccent),
                       const SizedBox(height: 25),
 
-                      Consumer<AuthProvider>(
-                        builder: (context, auth, _) {
-                          final mobile = auth.tempRegistrationData?['mobile'] ?? "********12";
-                          return Text(
-                            "We sent a verification code to your\nmobile number $mobile",
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              height: 1.5,
-                            ),
-                          );
-                        },
+                      Text(
+                        "We sent a verification code to your\nmobile number ${widget.countryCode} ${widget.mobileNumber}",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                        ),
                       ),
 
                       const SizedBox(height: 30),
@@ -116,69 +169,74 @@ class _OTPScreenState extends State<OTPScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 20),
+
+                      // Resend OTP Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _canResend ? "Didn't receive the OTP? " : "Resend OTP in ",
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          ),
+                          GestureDetector(
+                            onTap: _canResend ? _resendOtp : null,
+                            child: Text(
+                              _canResend ? "Resend OTP" : "${_secondsRemaining}s",
+                              style: TextStyle(
+                                color: _canResend ? Colors.red : Colors.grey.shade600,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       const SizedBox(height: 35),
 
                       // VERIFY BUTTON
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      SafeArea(
+                        top: false,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
-                          ),
-                          onPressed: () => _handleVerify(context),
-                          child: Consumer<AuthProvider>(
-                            builder: (context, auth, _) {
-                              if (auth.isLoading) {
-                                return const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
+                            onPressed: () => _handleVerify(context),
+                            child: Consumer<AuthProvider>(
+                              builder: (context, auth, _) {
+                                if (auth.isLoading) {
+                                    return const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    );
+                                }
+                                return const Text(
+                                  "VERIFY",
+                                  style: TextStyle(
                                     color: Colors.white,
-                                    strokeWidth: 2,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                 );
-                              }
-                              return const Text(
-                                "VERIFY",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              );
-                            },
+                              },
+                            ),
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 30),
-
-                      // Center(
-                      //   child: Column(
-                      //     children: [
-                      //       const Text(
-                      //         "or sign in with",
-                      //         style: TextStyle(color: Colors.grey, fontSize: 13),
-                      //       ),
-                      //       const SizedBox(height: 15),
-                      //       Row(
-                      //         mainAxisAlignment: MainAxisAlignment.center,
-                      //         children: [
-                      //           // _socialIcon(Icons.apple, Colors.black),
-                      //           // const SizedBox(width: 20),
-                      //           _socialIcon(Icons.facebook, const Color(0xFF3B5998)),
-                      //           const SizedBox(width: 20),
-                      //           _socialIcon(null, Colors.white, isGoogle: true),
-                      //         ],
-                      //       ),
-                      //     ],
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
@@ -193,27 +251,45 @@ class _OTPScreenState extends State<OTPScreen> {
   // OTP BOX
   void _handleVerify(BuildContext context) async {
     final otpStr = _otp;
-    if (otpStr.length < 6) {      FlushbarHelper.show(context, "Please enter complete 6-digit OTP");
-
+    if (otpStr.length < 6) {
+      FlushbarHelper.show(context, "Please enter complete 6-digit OTP");
       return;
     }
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.registerWithOtp(otpStr);
+    final success = await auth.loginWithOtp(widget.mobileNumber, otpStr);
 
     if (success) {
       if (context.mounted) {
         final user = auth.userProfile;
         if (user != null && (user.tncAccepted == false || user.tncVersion != "v1.0")) {
-          Future.microtask(() {
-            if (context.mounted) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const TncAcceptanceScreen()),
-                (route) => false,
-              );
-            }
-          });
+          if (widget.isTncAccepted) {
+            // Automatically accept T&C since user checked it on LoginScreen
+            await auth.updateUserProfile({
+              "tncAccepted": true,
+              "tncAcceptedAt": DateTime.now().toUtc().toIso8601String(),
+              "tncVersion": "v1.0"
+            });
+            Future.microtask(() {
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                  (route) => false,
+                );
+              }
+            });
+          } else {
+            Future.microtask(() {
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TncAcceptanceScreen()),
+                  (route) => false,
+                );
+              }
+            });
+          }
         } else {
           Navigator.pushAndRemoveUntil(
             context,
@@ -224,11 +300,7 @@ class _OTPScreenState extends State<OTPScreen> {
       }
     } else {
       if (context.mounted) {
-        if (auth.errorMessage?.contains("Terms & Conditions not accepted") == true) {
-          FlushbarHelper.show(context, "Please accept Terms & Conditions to continue");
-        } else {
-          FlushbarHelper.show(context, auth.errorMessage ?? "Registration failed");
-        }
+        FlushbarHelper.show(context, auth.errorMessage ?? "Login failed");
       }
     }
   }
@@ -247,6 +319,7 @@ class _OTPScreenState extends State<OTPScreen> {
       child: TextField(
         controller: _controllers[index],
         focusNode: _focusNodes[index],
+        autofocus: index == 0,
         onChanged: (value) {
           if (value.length == 1 && index < 5) {
             FocusScope.of(context).requestFocus(_focusNodes[index + 1]);

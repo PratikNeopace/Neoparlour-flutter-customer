@@ -5,14 +5,23 @@ import 'package:intl/intl.dart';
 import '../../provider/customer/booking_provider.dart';
 import '../../provider/customer/service_provider.dart';
 import '../../provider/customer/staff_provider.dart';
-import '../../widgets/custom_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'select_services_screen.dart';
 import 'select_staff_screen.dart';
-import 'home_screen.dart';
+import '../../core/domain/models/appointment.dart';
+import '../../core/utils/flushbar_helper.dart';
+import '../../core/utils/error_handler.dart';
+import '../../provider/customer/auth_provider.dart';
 
 class SelectDateTimeScreen extends StatefulWidget {
-  const SelectDateTimeScreen({super.key});
+  final bool isReschedule;
+  final Appointment? rescheduleAppointment;
+
+  const SelectDateTimeScreen({
+    super.key,
+    this.isReschedule = false,
+    this.rescheduleAppointment,
+  });
 
   @override
   State<SelectDateTimeScreen> createState() => _SelectDateTimeScreenState();
@@ -20,6 +29,7 @@ class SelectDateTimeScreen extends StatefulWidget {
 
 class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
   final ScrollController _scrollController = ScrollController();
+  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -66,25 +76,125 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                 _buildDateSelection(scale),
                 _buildTimeSlots(scale),
 
-                // NEXT Button
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    26 * scale,
-                    30 * scale,
-                    25 * scale,
-                    20 * scale,
-                  ),
-                  child: Consumer<BookingProvider>(
-                    builder: (context, provider, child) {
-                      final isStaffPreSelected =
-                          provider.preSelectedStaffId != null;
+                SizedBox(height: 130 * scale),
+              ],
+            ),
+          ),
 
-                      return GestureDetector(
-                        onTap: provider.selectedSlot == null
+          Positioned(
+            bottom: 20 + MediaQuery.of(context).padding.bottom,
+            left: 24,
+            right: 24,
+            child: Consumer<BookingProvider>(
+              builder: (context, provider, child) {
+                final enabled = provider.selectedSlot != null;
+                final isStaffPreSelected = provider.preSelectedStaffId != null;
+                
+                final serviceProvider = context.read<ServiceProvider>();
+                final staffProvider = context.read<StaffProvider>();
+                
+                final services = serviceProvider.selectedServices;
+                final hasServices = services.isNotEmpty;
+                final staff = staffProvider.selectedStaff;
+                
+                String leftTitleText = "";
+                String leftSubtitleText = "";
+                String buttonText = "Next";
+                
+                if (widget.isReschedule) {
+                  leftTitleText = "Reschedule Appointment";
+                  if (enabled) {
+                    leftSubtitleText = "New Slot: ${provider.selectedSlot!.displayTime}";
+                  } else {
+                    leftSubtitleText = "Please choose a slot";
+                  }
+                  buttonText = "Confirm Reschedule";
+                } else if (hasServices) {
+                  leftTitleText = "${services.length} service${services.length > 1 ? 's' : ''}";
+                  if (enabled) {
+                    leftSubtitleText = "${services.map((s) => s.name).join(', ')} • Slot: ${provider.selectedSlot!.displayTime}";
+                  } else {
+                    leftSubtitleText = services.map((s) => s.name).join(', ');
+                  }
+                  buttonText = "Next";
+                } else if (staff != null) {
+                  leftTitleText = "Staff selected";
+                  if (enabled) {
+                    leftSubtitleText = "${staff.name} • Slot: ${provider.selectedSlot!.displayTime}";
+                  } else {
+                    leftSubtitleText = staff.name;
+                  }
+                  buttonText = "Select services";
+                } else {
+                  leftTitleText = "Select slot";
+                  leftSubtitleText = "Please choose a slot";
+                  buttonText = "Next";
+                }
+
+                return Container(
+                  height: 68 * scale,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1F22),
+                    borderRadius: BorderRadius.circular(34 * scale),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 20 * scale, vertical: 10 * scale),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    leftTitleText,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 14 * scale,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 4 * scale),
+                                const Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 2 * scale),
+                            Text(
+                              leftSubtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 11 * scale,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: !enabled
                             ? null
                             : () {
-                                if (isStaffPreSelected) {
-                                  // Staff-first flow: slot chosen → pick services
+                                if (widget.isReschedule) {
+                                  _showRescheduleReasonDialog(context, provider);
+                                } else if (isStaffPreSelected) {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -93,7 +203,6 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                                     ),
                                   );
                                 } else {
-                                  // Normal flow: services + slot chosen → pick staff
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -104,95 +213,32 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                                 }
                               },
                         child: Container(
-                          height: 49 * scale,
-                          width: 324 * scale,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24 * scale,
+                            vertical: 10 * scale,
+                          ),
                           decoration: BoxDecoration(
-                            color: provider.selectedSlot == null
-                                ? Colors.grey
-                                : const Color(0xFFFF0B01),
-                            borderRadius: BorderRadius.circular(9),
+                            color: enabled ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(20 * scale),
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            "NEXT",
+                            buttonText,
                             style: GoogleFonts.poppins(
+                              color: enabled ? Colors.black : Colors.black.withValues(alpha: 0.5),
                               fontSize: 12 * scale,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: 2.0,
                             ),
                           ),
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 100 * scale),
-              ],
-            ),
-          ),
-
-          ///  RIGHT CORNER NEXT BUTTON
-          Positioned(
-            bottom: 20,
-            right: 18,
-            child: Consumer<BookingProvider>(
-              builder: (context, provider, child) {
-                final enabled = provider.selectedSlot != null;
-                final isStaffPreSelected =
-                    provider.preSelectedStaffId != null;
-
-                return FloatingActionButton(
-                  heroTag: "nextBtn",
-                  mini: true,
-                  onPressed: enabled
-                      ? () {
-                          if (isStaffPreSelected) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const SelectServicesScreen(),
-                              ),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const SelectStaffScreen(),
-                              ),
-                            );
-                          }
-                        }
-                      : null,
-                  backgroundColor: enabled
-                      ? const Color(0xFFFF0B01)
-                      : Colors.grey,
-                  child: const Icon(Icons.arrow_forward, color: Colors.white),
                 );
               },
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: const CustomBottomNavBar(selectedLabel: "SERVICES"),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildHomeFAB(context),
-    );
-  }
-
-  Widget _buildHomeFAB(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      ),
-      backgroundColor: const Color(0xFFFF0B01),
-      elevation: 5,
-      shape: const CircleBorder(),
-      child: SvgPicture.asset(
-        "assets/Images/BottomNavigationBar/home_icon.svg",
       ),
     );
   }
@@ -356,75 +402,97 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
               ),
             ),
             Container(
-              height: 70 * scale,
+              height: 75 * scale,
               decoration: const BoxDecoration(color: Color(0x4DFFD7CD)),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 10 * scale),
-                itemCount: days.length,
-                itemBuilder: (context, index) {
-                  final date = days[index];
-                  final isSelected = DateUtils.isSameDay(
-                    date,
-                    provider.selectedDate,
-                  );
-
-                  return GestureDetector(
-                    onTap: () {
-                      provider.selectDate(date);
-                    },
-                    child: Container(
-                      width: 50 * scale,
-                      margin: EdgeInsets.symmetric(
-                        vertical: 6 * scale,
-                        horizontal: 4 * scale,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFFF0B01)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16.5 * scale),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            DateFormat('E').format(date).toLowerCase(),
-                            style: GoogleFonts.poppins(
-                              fontSize: 10 * scale,
-                              fontWeight: isSelected
-                                  ? FontWeight.w500
-                                  : FontWeight.w400,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF8D8D8D),
-                            ),
-                          ),
-                          SizedBox(height: 4 * scale),
-                          Container(
-                            width: 25 * scale,
-                            height: 25 * scale,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              date.day.toString(),
-                              style: GoogleFonts.poppins(
-                                fontSize: 14 * scale,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ],
+              child: Row(
+                children: [
+                  SizedBox(width: 20 * scale),
+                  // Month pill
+                  Container(
+                    width: 32 * scale,
+                    height: 55 * scale,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D2D2D),
+                      borderRadius: BorderRadius.circular(10 * scale),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      DateFormat('MMM').format(provider.selectedDate).toUpperCase().split('').join('\n'),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10 * scale,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.1,
                       ),
                     ),
-                  );
-                },
+                  ),
+                  SizedBox(width: 8 * scale),
+                  // Scrollable dates list
+                  Expanded(
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.symmetric(horizontal: 2 * scale),
+                      itemCount: days.length,
+                      itemBuilder: (context, index) {
+                        final date = days[index];
+                        final isSelected = DateUtils.isSameDay(
+                          date,
+                          provider.selectedDate,
+                        );
+
+                        return GestureDetector(
+                          onTap: () {
+                            provider.selectDate(date);
+                          },
+                          child: Container(
+                            width: 50 * scale,
+                            margin: EdgeInsets.symmetric(
+                              vertical: 8 * scale,
+                              horizontal: 4 * scale,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFFF0B01)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12 * scale),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  date.day.toString(),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15 * scale,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                                SizedBox(height: 2 * scale),
+                                Text(
+                                  DateFormat('E').format(date),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10 * scale,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w500
+                                        : FontWeight.w400,
+                                    color: isSelected
+                                        ? Colors.white.withValues(alpha: 0.8)
+                                        : const Color(0xFF8D8D8D),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -461,64 +529,191 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
           );
         }
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(
-            horizontal: 24 * scale,
-            vertical: 20 * scale,
-          ),
-          itemCount: provider.availableSlots.length,
-          itemBuilder: (context, index) {
-            final slot = provider.availableSlots[index];
-            final isSelected = provider.selectedSlot == slot;
+        final slots = provider.availableSlots;
+        final bool showToggle = slots.length > 6;
+        final int displayCount = showToggle && !_isExpanded ? 6 : slots.length;
 
-            return GestureDetector(
-              onTap: () => provider.selectSlot(slot),
-              child: Container(
-                height: 48 * scale,
-                margin: EdgeInsets.only(bottom: 15 * scale),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: const Color(0xFF909090), width: 1),
+        return Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 24 * scale,
+                vertical: 20 * scale,
+              ),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 11 * scale,
+                  mainAxisSpacing: 11 * scale,
+                  childAspectRatio: 2.2,
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 18 * scale),
-                child: Row(
-                  children: [
-                    Text(
-                      slot.displayTime,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14 * scale,
-                        fontWeight: FontWeight.w500,
+                itemCount: displayCount,
+                itemBuilder: (context, index) {
+                  final slot = slots[index];
+                  final isSelected = provider.selectedSlot == slot;
+                  final hasDiscount = slot.discountMessage != null && slot.discountMessage!.isNotEmpty;
+
+                  return GestureDetector(
+                    onTap: slot.busy ? null : () => provider.selectSlot(slot),
+                    child: Opacity(
+                      opacity: slot.busy ? 0.5 : 1.0,
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: slot.busy
+                                  ? Colors.grey.shade100
+                                  : isSelected
+                                      ? const Color(0xFFFF0B01)
+                                      : Colors.white,
+                              borderRadius: BorderRadius.circular(9 * scale),
+                              border: Border.all(
+                                color: slot.busy
+                                    ? Colors.grey.shade300
+                                    : isSelected
+                                        ? const Color(0xFFFF0B01)
+                                        : const Color(0xFFDFDFDF),
+                                width: 1,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  slot.displayTime,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13 * scale,
+                                    fontWeight: isSelected && !slot.busy
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: slot.busy
+                                        ? Colors.grey.shade400
+                                        : isSelected
+                                            ? Colors.white
+                                            : const Color(0xFF2D2D2D),
+                                    decoration: slot.busy
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                    decorationColor: Colors.grey.shade400,
+                                  ),
+                                ),
+                                if (hasDiscount && !slot.busy) ...[
+                                  SizedBox(height: 2 * scale),
+                                  Text(
+                                    slot.discountMessage!,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 9.5 * scale,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? Colors.white.withValues(alpha: 0.9)
+                                          : const Color(0xFF8E7CFF),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      width: 16 * scale,
-                      height: 16 * scale,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black, width: 1),
-                        color: isSelected
-                            ? const Color(0xFFFF0B01)
-                            : Colors.transparent,
-                      ),
-                      child: isSelected
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 10,
-                            )
-                          : null,
+                  );
+                },
+              ),
+            ),
+            if (showToggle)
+              Padding(
+                padding: EdgeInsets.only(bottom: 10 * scale),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16 * scale,
+                      vertical: 8 * scale,
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _isExpanded ? "View less" : "View all slots",
+                          style: GoogleFonts.poppins(
+                            fontSize: 13 * scale,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF2D2D2D),
+                          ),
+                        ),
+                        SizedBox(width: 4 * scale),
+                        Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          size: 18 * scale,
+                          color: const Color(0xFF2D2D2D),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            );
-          },
+          ],
         );
       },
+    );
+  }
+
+  void _showRescheduleReasonDialog(BuildContext context, BookingProvider provider) {
+    if (widget.rescheduleAppointment == null || provider.selectedSlot == null) return;
+    
+    final TextEditingController reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Reschedule Reason"),
+        content: TextField(
+          controller: reasonController,
+          decoration: const InputDecoration(hintText: "Why are you rescheduling?"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("BACK")),
+          TextButton(
+            onPressed: () async {
+              final reason = reasonController.text.trim();
+              if (reason.isEmpty) return;
+              
+              Navigator.pop(dialogContext); // Close dialog
+              
+              final auth = context.read<AuthProvider>();
+              final newDateTime = provider.selectedSlot!.startTime;
+              
+              try {
+                await provider.rescheduleAppointment(
+                  widget.rescheduleAppointment!.id,
+                  newDateTime,
+                  reason,
+                  auth.userPhone ?? '',
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  FlushbarHelper.show(context, "Appointment rescheduled successfully", isSuccess: true);
+                }
+              } catch (e) {
+                final msg = ErrorHandler.getErrorMessage(e);
+                if (context.mounted) {
+                  FlushbarHelper.show(context, msg);
+                }
+              }
+            },
+            child: const Text("CONFIRM"),
+          ),
+        ],
+      ),
     );
   }
 }

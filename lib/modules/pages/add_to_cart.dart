@@ -1,8 +1,10 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/flushbar_helper.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
-import 'package:neo_parlour/modules/pages/home_screen.dart';
 import 'package:neo_parlour/widgets/custom_nav_bar.dart';
 import '../../provider/customer/cart_provider.dart';
 import '../../core/domain/models/cart_item.dart';
@@ -35,11 +37,21 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-           Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (route) => false,
-          );
+           final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
         },
         backgroundColor: Colors.red,
         shape: const CircleBorder(),
@@ -212,6 +224,11 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
                                         height: 55,
                                         child: ElevatedButton(
                                           onPressed: cartProvider.isLoading ? null : () async {
+                                            final hasOutofStock = cartItems.any((item) => item.availableStock == 0 || !item.inStock);
+                                            if (hasOutofStock) {
+                                              FlushbarHelper.show(context, "Please remove out of stock items to proceed");
+                                              return;
+                                            }
                                             final success = await cartProvider.checkout();
                                             if (!context.mounted) return;
                                             if (success) {
@@ -330,6 +347,11 @@ class _AddToCartScreenState extends State<AddToCartScreen> {
                     ),
                   ],
                 ),
+                if (item.availableStock == 0 || !item.inStock)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4.0),
+                    child: Text("Out of stock", style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

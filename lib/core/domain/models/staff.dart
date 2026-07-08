@@ -60,7 +60,7 @@ class Staff {
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : null,
       image: json['image'] as String?,
       active: (json['active'] as bool?) ?? true,
-      imageUrl: json['imageUrl'] ?? json['imageBase64'] ?? json['imageAsBase64'],
+      imageUrl: json['imageUrl'] ?? json['imagePath'] ?? json['imageBase64'] ?? json['imageAsBase64'],
       imageAsBase64: (json['imageBase64'] as String?) ?? (json['imageAsBase64'] as String?),
       inactive: json['inactive'] as bool?,
       busy: json['busy'] as bool?,

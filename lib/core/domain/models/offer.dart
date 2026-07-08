@@ -31,19 +31,19 @@ class Offer {
 
   factory Offer.fromJson(Map<String, dynamic> json) {
     return Offer(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      description: json['description'] as String,
-      discountType: json['discountType'] as String,
-      discountValue: (json['discountValue'] as num).toDouble(),
-      validFrom: DateTime.parse(json['validFrom'] as String),
-      validTo: DateTime.parse(json['validTo'] as String),
-      applicableServices: (json['applicableServices'] as List<dynamic>?)
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? 'Unnamed Offer',
+      description: json['description'] as String? ?? '',
+      discountType: json['discountType'] as String? ?? 'PERCENTAGE',
+      discountValue: (json['percentage'] as num?)?.toDouble() ?? (json['discountValue'] as num?)?.toDouble() ?? 0.0,
+      validFrom: json['validFrom'] != null ? DateTime.parse(json['validFrom'] as String) : DateTime.now(),
+      validTo: json['validTo'] != null ? DateTime.parse(json['validTo'] as String) : DateTime.now(),
+      applicableServices: ((json['services'] as List<dynamic>?) ?? (json['applicableServices'] as List<dynamic>?))
               ?.map((s) => NeoService.fromJson(s as Map<String, dynamic>))
               .toList() ??
           [],
-      active: json['active'] as bool,
-      usedCount: json['usedCount'] as int,
+      active: json['active'] as bool? ?? true,
+      usedCount: json['usedCount'] as int? ?? 0,
       totalUsageLimit: json['totalUsageLimit'] as int?,
       usageLimitPerCustomer: json['usageLimitPerCustomer'] as int?,
     );

@@ -41,6 +41,15 @@ class ServiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addServices(List<NeoService> newServices) {
+    for (var s in newServices) {
+      if (!_services.any((element) => element.id == s.id)) {
+        _services.add(s);
+      }
+    }
+    notifyListeners();
+  }
+
   void clearData() {
     _services = [];
     _selectedServiceIds.clear();

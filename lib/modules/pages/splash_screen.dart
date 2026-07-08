@@ -1,11 +1,11 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../../provider/customer/auth_provider.dart';
-import 'home_screen.dart';
-import 'salon_id_screen.dart';
 import 'splash_two_screen.dart'; 
 
 class SplashScreen extends StatefulWidget {
@@ -44,10 +44,21 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (authProvider.isAuthenticated) {
       if (authProvider.tenantName != null && authProvider.tenantName!.isNotEmpty) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
       } else {
         Navigator.pushReplacement(
           context,

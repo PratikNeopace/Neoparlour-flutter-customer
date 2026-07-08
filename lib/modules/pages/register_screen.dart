@@ -286,12 +286,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 fontSize: 12,
                               ),
                               children: [
-                                const TextSpan(text: "I agree to "),
+                                const TextSpan(text: "I agree to the "),
                                 TextSpan(
                                   text: "Terms & Conditions",
                                   style: const TextStyle(
                                     color: Color(0XFFFF0B01),
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = openTermsAndConditions,
@@ -301,7 +302,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   text: "Privacy Policy",
                                   style: const TextStyle(
                                     color: Color(0XFFFF0B01),
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = openPrivacyPolicy,
@@ -393,7 +395,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    SafeArea(top: false, child: const SizedBox(height: 12)),
                   ],
                 ),
               ),
@@ -461,7 +463,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (context.mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const OTPScreen()),
+        MaterialPageRoute(
+          builder: (context) => OTPScreen(
+            mobileNumber: mobile,
+            countryCode: "+91",
+          ),
+        ),
       );
     }
   }

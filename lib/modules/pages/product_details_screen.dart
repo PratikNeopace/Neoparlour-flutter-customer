@@ -1,13 +1,14 @@
+import 'package:provider/provider.dart';
+import 'package:neo_parlour/provider/customer/auth_provider.dart';
+import 'package:neo_parlour/modules/pages/salon_details_screen.dart';
+import 'package:neo_parlour/modules/pages/salon_id_screen.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/flushbar_helper.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
 import '../../provider/customer/product_provider.dart';
 import '../../provider/customer/cart_provider.dart';
 import '../../widgets/custom_nav_bar.dart';
 import 'add_to_cart.dart';
-import 'home_screen.dart';
-import '../../provider/customer/auth_provider.dart';
 import '../../widgets/premium_image.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -75,11 +76,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (route) => false,
-          );
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final salonId = authProvider.salonId;
+            if (salonId != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SalonDetailsScreen(salonId: salonId)),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const SalonIDScreen()),
+                (route) => false,
+              );
+            }
         },
         backgroundColor: Colors.red,
         shape: const CircleBorder(),
@@ -248,7 +259,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             builder: (context, cartProvider, child) {
                               return Column(
                                 children: [
-                                  Row(
+                                  product.stock == 0 
+                                      ? SizedBox(
+                                          width: double.infinity,
+                                          height: 55,
+                                          child: ElevatedButton(
+                                            onPressed: null,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.grey.shade400,
+                                              disabledBackgroundColor: Colors.grey.shade400,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            child: const Text("OUT OF STOCK",
+                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                          ),
+                                        )
+                                      : Row(
                                     children: [
                                       // Add to Cart Button
                                       Expanded(

@@ -1,0 +1,3 @@
+TOKEN="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIrOTE3NTE3MzQ5NzczIiwiY3VzdG9tZXJJZCI6MywicGhvbmUiOiIrOTE3NTE3MzQ5NzczIiwibmFtZSI6IkN1c3RvbWVyIiwidHlwZSI6IkNVU1RPTUVSIiwicm9sZSI6IkNVU1RPTUVSIiwidGVuYW50Ijo0LCJzYWxvbklkIjo0LCJpYXQiOjE3ODMwNjUyODAsImV4cCI6MTgxNDYwMTI4MCwic2Fsb25OYW1lIjoiQXZpc2hrYXIifQ.VNgTIfCqWdgYeoYCQcXYt5MMvntZtPeAhELPkZq5Oao"
+
+curl -s -H "Authorization: Bearer $TOKEN" "https://sb.neoparlour.com/api/salons/4" | python3 -m json.tool | grep -i image

@@ -20,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
   String? _userPhone;
   int? _userId;
   String? _tenantName;
+  int? _salonId;
   UserProfile? _userProfile;
   Map<String, dynamic>? _tempRegistrationData;
 
@@ -30,6 +31,7 @@ class AuthProvider extends ChangeNotifier {
   String? get userPhone => _userPhone;
   int? get userId => _userId;
   String? get tenantName => _tenantName;
+  int? get salonId => _salonId;
   UserProfile? get userProfile => _userProfile;
   Map<String, dynamic>? get tempRegistrationData => _tempRegistrationData;
   bool get isLoadingProfile => _isLoadingProfile;
@@ -46,6 +48,7 @@ class AuthProvider extends ChangeNotifier {
     _userPhone = prefs.getString('userPhone');
     _userId = prefs.getInt('userId');
     _tenantName = prefs.getString('tenantName');
+    _salonId = prefs.getInt('salonId');
     
     if (!_initCompleter.isCompleted) {
       _initCompleter.complete();
@@ -115,6 +118,53 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> loginWithOtp(String mobile, String otp) async {
+    _setLoading(true);
+    _errorMessage = null;
+    
+    try {
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+      } catch (e) {
+        debugPrint("Failed to get FCM token during OTP login: $e");
+      }
+
+      final response = await _authService.loginWithOtp(mobile, otp, fcmToken: fcmToken);
+      
+      _token = response.token;
+      _userName = response.name;
+      _userPhone = response.phone;
+      _userId = response.id;
+      _tenantName = response.tenantName;
+      
+      debugPrint("Login Successful via OTP for User: $_userId, Tenant: $_tenantName, Token: ${_token?.substring(0, 10)}...");
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', _token!);
+      await prefs.setString('userName', _userName!);
+      await prefs.setString('userPhone', _userPhone!);
+      await prefs.setString('tenantName', _tenantName!);
+      if (_userId != null) await prefs.setInt('userId', _userId!);
+      
+      if (_userId != null) {
+        try {
+          _userProfile = await _authService.getUserProfile(_userId!);
+        } catch (e) {
+          debugPrint("Profile fetch error in login: $e");
+        }
+      }
+
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _errorMessage = ErrorHandler.getErrorMessage(e);
+      debugPrint("Login with OTP Error: $_errorMessage");
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<bool> switchTenant(String tenantId) async {
     if (_token == null) {
       _errorMessage = "No active session. Please login again.";
@@ -154,6 +204,50 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> switchSalon(int salonId, String salonName) async {
+    if (_token == null) {
+      _errorMessage = "No active session. Please login again.";
+      notifyListeners();
+      return false;
+    }
+
+    _setLoading(true);
+    _errorMessage = null;
+
+    try {
+      final response = await _authService.switchCustomerToSalonById(
+        token: _token!,
+        salonId: salonId,
+        salonName: salonName,
+      );
+      
+      // Update all fields with the new response returned by switch-salon
+      _token = response.token;
+      _userName = response.name;
+      _userPhone = response.phone;
+      _userId = response.id;
+      _tenantName = response.tenantName;
+      _salonId = salonId;
+      
+      debugPrint("Switch Salon Successful. New User: $_userId, Tenant: $_tenantName, Token: ${_token?.substring(0, 10)}...");
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', _token!);
+      if (_userName != null) await prefs.setString('userName', _userName!);
+      if (_userPhone != null) await prefs.setString('userPhone', _userPhone!);
+      if (_tenantName != null) await prefs.setString('tenantName', _tenantName!);
+      if (_userId != null) await prefs.setInt('userId', _userId!);
+      await prefs.setInt('salonId', salonId);
+      
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _errorMessage = ErrorHandler.getErrorMessage(e);
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _authService.logout();
@@ -167,9 +261,11 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('userPhone');
     await prefs.remove('userId');
     await prefs.remove('tenantName');
+    await prefs.remove('salonId');
     _token = null;
     _userId = null;
     _tenantName = null;
+    _salonId = null;
     _userProfile = null;
     notifyListeners();
   }

@@ -5,8 +5,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:neo_parlour/provider/customer/auth_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
+import '../../core/data/api_client.dart';
 import '../../provider/customer/service_provider.dart';
-import '../../core/domain/models/neo_service.dart';
 import '../../widgets/custom_nav_bar.dart';
 import 'select_services_screen.dart';
 import 'services_screen.dart';
@@ -25,6 +26,7 @@ import 'beauty_products_screen.dart';
 import 'product_details_screen.dart';
 import 'custom_search_delegate.dart';
 import '../../widgets/premium_image.dart';
+import '../../core/utils/flushbar_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,20 +39,139 @@ class _HomeScreenState extends State<HomeScreen> {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  final ApiClient _apiClient = ApiClient();
+  List<String> _categories = [];
+  bool _isLoadingCategories = false;
+  String? _categoriesError;
+  int? _lastSalonId;
+  String? _fetchedSalonName;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProvider = context.watch<AuthProvider>();
+    final currentSalonId = authProvider.salonId ?? 3;
+    if (currentSalonId != _lastSalonId) {
+      _lastSalonId = currentSalonId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchCategories();
+      });
+    }
+  }
+
+  Future<void> _fetchCategories() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingCategories = true;
+      _categoriesError = null;
+    });
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final salonId = authProvider.salonId ?? 3;
+
+      Response response;
+      try {
+        response = await _apiClient.dio.get(
+          'service/public/categories',
+          queryParameters: {'salonId': salonId},
+        );
+      } catch (e) {
+        // Fallback if singular service/public/categories fails
+        response = await _apiClient.dio.get(
+          'services/public/categories',
+          queryParameters: {'salonId': salonId},
+        );
+      }
+
+      if (!mounted) return;
+
+      if (response.data is List) {
+        setState(() {
+          _categories = List<String>.from(response.data);
+          _isLoadingCategories = false;
+        });
+      } else {
+        setState(() {
+          _categoriesError = "Failed to load categories";
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching categories on home screen: $e");
+      if (mounted) {
+        setState(() {
+          _categoriesError = "Error loading categories";
+          _isLoadingCategories = false;
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _initLocalNotifications();
-    requestPermission();
-    getFCMToken();
+    _setupMessaging();
     listenForeground();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ServiceProvider>().fetchServices();
-      context.read<StaffProvider>().fetchStaff();
-      context.read<OfferProvider>().fetchActiveOffers();
-      context.read<PackageProvider>().fetchPackages();
-      context.read<ProductProvider>().fetchProducts();
+      _fetchHomeData();
     });
+  }
+
+  Future<void> _setupMessaging() async {
+    await requestPermission();
+    getFCMToken();
+  }
+
+
+  Future<void> _fetchHomeData() async {
+    if (!mounted) return;
+    final serviceProv = context.read<ServiceProvider>();
+    final staffProv = context.read<StaffProvider>();
+    final offerProv = context.read<OfferProvider>();
+    final packageProv = context.read<PackageProvider>();
+    final productProv = context.read<ProductProvider>();
+
+    await Future.wait([
+      serviceProv.fetchServices(),
+      staffProv.fetchStaff(),
+      offerProv.fetchActiveOffers(),
+      packageProv.fetchPackages(),
+      productProv.fetchProducts(),
+    ]);
+
+    if (!mounted) return;
+    final authProv = context.read<AuthProvider>();
+    final currentSalonId = authProv.salonId ?? 3;
+
+    try {
+      final response = await _apiClient.dio.get('salons/$currentSalonId');
+      if (mounted && response.data != null && response.data['salonName'] != null) {
+        setState(() {
+          _fetchedSalonName = response.data['salonName'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching salon details: $e");
+    }
+
+    if (!mounted) return;
+
+    // Check if any error is a rate limit error
+    final errors = [
+      serviceProv.error,
+      staffProv.error,
+      offerProv.errorMessage,
+      packageProv.errorMessage,
+      productProv.error
+    ];
+
+    final hasRateLimitError = errors.any((e) => e != null && e.toLowerCase().contains('rate limit'));
+
+    if (hasRateLimitError) {
+      FlushbarHelper.error(context, "Rate limit exceeded. Please try again later.");
+    }
   }
 
   void _initLocalNotifications() async {
@@ -75,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   //  Ask notification permission (Android 13+)
-  void requestPermission() async {
+  Future<void> requestPermission() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     NotificationSettings settings = await messaging.requestPermission(
@@ -89,11 +210,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   //  Get FCM Token 
   void getFCMToken() async {
-    String? token = await FirebaseMessaging.instance.getToken();
-    debugPrint("FCM Token: $token");
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      debugPrint("FCM Token: $token");
 
-    if (token != null && mounted) {
-      context.read<AuthProvider>().updateFcmTokenOnServer(token);
+      if (token != null && mounted) {
+        context.read<AuthProvider>().updateFcmTokenOnServer(token);
+      }
+      
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+        debugPrint("FCM Token Refreshed: $newToken");
+        if (mounted) {
+          context.read<AuthProvider>().updateFcmTokenOnServer(newToken);
+        }
+      });
+    } catch (e) {
+      debugPrint("Error getting FCM token: $e");
     }
   }
 
@@ -140,13 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       body: RefreshIndicator(
         onRefresh: () async {
-          await Future.wait([
-            context.read<ServiceProvider>().fetchServices(),
-            context.read<StaffProvider>().fetchStaff(),
-            context.read<OfferProvider>().fetchActiveOffers(),
-            context.read<PackageProvider>().fetchPackages(),
-            context.read<ProductProvider>().fetchProducts(),
-          ]);
+          await _fetchHomeData();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -328,14 +454,42 @@ class _HomeScreenState extends State<HomeScreen> {
           // WELCOME Text
           Positioned(
             left: 24 * scale,
+            right: 110 * scale, // Added right constraint to prevent overlap with the FAB
             bottom: 40 * scale,
-            child: Text(
-              "WELCOME",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 32 * scale,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                String tenant = authProvider.tenantName ?? "NEOPARLOUR";
+                if (int.tryParse(tenant) != null) {
+                  tenant = "NEOPARLOUR"; 
+                }
+                final salonName = (_fetchedSalonName ?? tenant).toUpperCase();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "WELCOME TO",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 16 * scale,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Text(
+                      salonName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 32 * scale,
+                        fontWeight: FontWeight.w700,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
 
@@ -412,133 +566,131 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildServicesGrid(double sw, double scale) {
-    return Consumer<ServiceProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0XFFFF0B01)),
-          );
-        }
+    if (_isLoadingCategories) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0XFFFF0B01)),
+      );
+    }
 
-        if (provider.error != null) {
-          return Center(
-            child: Text(
-              provider.error ?? "Error loading services",
-              style: GoogleFonts.poppins(color: Colors.red),
-            ),
-          );
-        }
+    if (_categoriesError != null) {
+      return Center(
+        child: Text(
+          _categoriesError!,
+          style: GoogleFonts.poppins(color: Colors.red),
+        ),
+      );
+    }
 
-        final allServices = List<NeoService>.from(provider.services);
-        // Sort services by ID ascending (1, 2, 3...)
-        allServices.sort((a, b) => a.id.compareTo(b.id));
+    final bool isOverflow = _categories.length > 7;
+    final displayCategories = isOverflow
+        ? _categories.take(7).toList()
+        : _categories;
 
-        final bool isOverflow = allServices.length > 7;
-        final displayServices = isOverflow
-            ? allServices.take(7).toList()
-            : allServices;
-
-        return Wrap(
-          spacing: 16 * scale,
-          runSpacing: 16 * scale,
-          alignment: WrapAlignment.center,
-          children: [
-            ...displayServices.map((s) => _serviceCard(s, scale)),
-            if (isOverflow)
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ServicesScreen(),
-                    ),
-                  );
-                },
-                child: SizedBox(
-                  width: 76 * scale,
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 76 * scale,
-                        width: 76 * scale,
-                        padding: EdgeInsets.all(18 * scale),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x0D000000), blurRadius: 4),
-                          ],
-                        ),
-                        child: SvgPicture.asset(
-                          "assets/Images/HomeScreen/more_services.svg",
-                        ),
-                      ),
-                      SizedBox(height: 12 * scale),
-                      Text(
-                        "More",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 10 * scale,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
+    return Wrap(
+      spacing: 16 * scale,
+      runSpacing: 16 * scale,
+      alignment: WrapAlignment.center,
+      children: [
+        ...displayCategories.map((c) => _categoryCard(c, scale)),
+        if (isOverflow)
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ServicesScreen(),
                 ),
+              );
+            },
+            child: SizedBox(
+              width: 76 * scale,
+              child: Column(
+                children: [
+                  Container(
+                    height: 76 * scale,
+                    width: 76 * scale,
+                    padding: EdgeInsets.all(18 * scale),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x0D000000), blurRadius: 4),
+                      ],
+                    ),
+                    child: SvgPicture.asset(
+                      "assets/Images/HomeScreen/more_services.svg",
+                    ),
+                  ),
+                  SizedBox(height: 12 * scale),
+                  Text(
+                    "More",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10 * scale,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
-            if (allServices.isEmpty) Text("No services available"),
-          ],
-        );
-      },
+            ),
+          ),
+        if (_categories.isEmpty)
+          Text(
+            "No categories available",
+            style: GoogleFonts.poppins(color: Colors.grey),
+          ),
+      ],
     );
   }
 
-  Widget _serviceCard(NeoService service, double scale) {
+  Widget _categoryCard(String categoryName, double scale) {
     String iconPath = "assets/Images/BookAppointmentScreen/service_icon.svg";
-    String label = service.name;
+    final categoryLower = categoryName.toLowerCase().trim();
 
-    final lowerName = service.name.toLowerCase();
-    if (lowerName.contains("haircut") || lowerName.contains("hair cut")) {
-      iconPath = "assets/Images/HomeScreen/hair_cut_services.svg";
-    } else if (lowerName.contains("color")) {
+    if (categoryLower.contains("color") || categoryLower == "coloring") {
       iconPath = "assets/Images/HomeScreen/hair_coloring_services.svg";
-    } else if (lowerName.contains("spa")) {
+    } else if (categoryLower.contains("spa") || categoryLower.contains("span")) {
       iconPath = "assets/Images/HomeScreen/hair_spa_services.svg";
-    } else if (lowerName.contains("shaving") || lowerName.contains("shave")) {
-      iconPath = "assets/Images/HomeScreen/shaving_services.svg";
-    } else if (lowerName.contains("wash")) {
-      iconPath = "assets/Images/HomeScreen/hair_wash_services.svg";
-    } else if (lowerName.contains("straightning") ||
-        lowerName.contains("straighten")) {
-      iconPath = "assets/Images/HomeScreen/straightning_services.svg";
-    } else if (lowerName.contains("styling") || lowerName.contains("style")) {
+    } else if (categoryLower.contains("styling")) {
       iconPath = "assets/Images/HomeScreen/hair_styling_services.svg";
-    }else {
-
-      // ✅ EVERYTHING ELSE
-
+    } else if (categoryLower.contains("wash")) {
+      iconPath = "assets/Images/HomeScreen/hair_wash_services.svg";
+    } else if (categoryLower.contains("shav")) {
+      iconPath = "assets/Images/HomeScreen/shaving_services.svg";
+    } else if (categoryLower.contains("straight")) {
+      iconPath = "assets/Images/HomeScreen/straightning_services.svg";
+    } else if (categoryLower.contains("cut") || categoryLower == "hair" || categoryLower == "hair services" || categoryLower == "hair cut") {
+      iconPath = "assets/Images/HomeScreen/hair_cut_services.svg";
+    } else if (categoryLower == "skin care" || categoryLower == "facial" || categoryLower.contains("skin") || categoryLower.contains("facial") || categoryLower.contains("lighting")) {
+      iconPath = "assets/Images/HomeScreen/Skin care.svg";
+    } else if (categoryLower == "hair removal" || categoryLower.contains("removal")) {
+      iconPath = "assets/Images/HomeScreen/Hair removal.svg";
+    } else if (categoryLower == "nail care" || categoryLower.contains("nail")) {
+      iconPath = "assets/Images/HomeScreen/Nail care.svg";
+    } else if (categoryLower == "makeup" || categoryLower.contains("makeup")) {
+      iconPath = "assets/Images/HomeScreen/makeup.svg";
+    } else if (categoryLower == "grooming" || categoryLower.contains("grooming")) {
+      iconPath = "assets/Images/HomeScreen/grooming.svg";
+    } else if (categoryLower == "spa & massage" || categoryLower.contains("massage")) {
+      iconPath = "assets/Images/HomeScreen/spa & massage.svg";
+    } else if (categoryLower == "hair treatment" || categoryLower.contains("treatment")) {
+      iconPath = "assets/Images/HomeScreen/Hair treatment.svg";
+    } else {
       iconPath = "assets/Images/HomeScreen/common_service.svg";
-
     }
 
     return GestureDetector(
       onTap: () {
-        final serviceProvider = context.read<ServiceProvider>();
-        final bookingProvider = context.read<BookingProvider>();
-
-        // Service-first flow: reset any stale staff selection
         context.read<StaffProvider>().resetStaffState();
-        bookingProvider.setPreSelectedStaff(null);
-
-        // Clear previous and set new selection
-        serviceProvider.preselectServices([service.id]);
-        bookingProvider.applyOffer(null);
-        bookingProvider.setSelectedPackage(null);
-
+        context.read<BookingProvider>().setPreSelectedStaff(null);
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SelectDateTimeScreen()),
+          MaterialPageRoute(
+            builder: (context) => SelectServicesScreen(
+              initialCategory: categoryName,
+            ),
+          ),
         );
       },
       child: SizedBox(
@@ -560,8 +712,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(height: 12 * scale),
             Text(
-              label,
+              categoryName,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 fontSize: 10 * scale,
                 fontWeight: FontWeight.w500,
@@ -583,7 +737,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (provider.error != null) {
+        if (provider.error != null && provider.staffList.isEmpty) {
           return Center(
             child: Text(
               "Error: ${provider.error}",
@@ -711,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (provider.error != null) {
+        if (provider.error != null && provider.products.isEmpty) {
           return Center(
             child: Text(
               provider.error ?? "Error loading products",
@@ -811,14 +965,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Colors.black,
                               ),
                             ),
-                            Text(
-                              "₹${p.discountPrice.toInt()}",
-                              style: GoogleFonts.poppins(
-                                fontSize: 10 * scale,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0XFFFF0B01),
-                              ),
-                            ),
+                            p.stock == 0
+                                ? Text(
+                                    "Out of stock",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10 * scale,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey,
+                                    ),
+                                  )
+                                : Text(
+                                    "₹${p.discountPrice.toInt()}",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10 * scale,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0XFFFF0B01),
+                                    ),
+                                  ),
                           ],
                         ),
                       ),
@@ -842,7 +1005,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (provider.errorMessage != null) {
+        if (provider.errorMessage != null && provider.offers.isEmpty) {
           return Center(
             child: Text(
               provider.errorMessage ?? "Error loading offers",
@@ -974,6 +1137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context.read<StaffProvider>().resetStaffState();
                         bookingProvider.setPreSelectedStaff(null);
 
+                        serviceProvider.addServices(offer.applicableServices);
                         final serviceIds = offer.applicableServices
                             .map((s) => s.id)
                             .toList();
@@ -1048,7 +1212,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (provider.errorMessage != null) {
+        if (provider.errorMessage != null && provider.packages.isEmpty) {
           return Center(
             child: Text(
               provider.errorMessage ?? "Error loading packages",
